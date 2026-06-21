@@ -1265,97 +1265,85 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       cols.push(cur.trim()); return cols;
     });
   }
-  function ni(v){ return parseInt((v||'0').replace(/\D/g,''))||0; }
+  function ni(v){ return parseInt((v||'0').replace(/[^\d]/g,''))||0; }
+
+  // Formata data: "6/11/2026" → "11/06"
+  function fmtDate(raw){
+    const p = raw.trim().replace(/"/g,'');
+    // Aceita dd/mm/yyyy, mm/dd/yyyy, d-mmm etc
+    const m1 = p.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if(m1){
+      // Google Sheets exporta como M/D/YYYY (mês/dia/ano)
+      const month = m1[1].padStart(2,'0');
+      const day   = m1[2].padStart(2,'0');
+      return `${day}/${month}`;
+    }
+    // Tenta d-mmm (19-jun)
+    const m2 = p.match(/^(\d{1,2})-([a-zA-Zê]+)\.?$/);
+    if(m2){
+      const monthMap = {jan:'01',fev:'02',feb:'02',mar:'03',abr:'04',apr:'04',mai:'05',may:'05',jun:'06',jul:'07',ago:'08',aug:'08',set:'09',sep:'09',out:'10',oct:'10',nov:'11',dez:'12',dec:'12'};
+      const mm = monthMap[(m2[2]||'').toLowerCase().slice(0,3)] || '??';
+      return `${m2[1].padStart(2,'0')}/${mm}`;
+    }
+    return p.slice(0,5);
+  }
 
   async function loadEfetivo(){
-    // Tenta GIDs possíveis da aba Efetivo
-    const gids = [0,1,2,3];
-    let rows = null;
+    // Aba Efetivo — tenta GIDs comuns
+    const gids = [1, 0, 2];
     for(const gid of gids){
       try{
-        const csv = await fetch(EFETIVO_URL+'&gid='+gid).then(r=>r.text());
-        const parsed = parseCSV(csv);
-        // Verifica se tem dados de efetivo (procura "direta" ou "turno")
-        const joined = parsed.slice(0,5).map(r=>r.join('|')).join('|').toLowerCase();
-        if(joined.includes('direta')||joined.includes('turno')||joined.includes('efetivo')){
-          rows = parsed; break;
-        }
-        // Verifica se a primeira coluna parece datas (dd/mm)
-        if(parsed[1] && /^\d{1,2}\/\d{1,2}/.test(parsed[1][0]||'')){
-          rows = parsed; break;
+        const csv = await fetch(`${EFETIVO_URL}&gid=${gid}`).then(r=>r.text());
+        const rows = parseCSV(csv);
+        // Verifica se tem "DIRETA" ou "DIRETA Total"
+        const flat = rows.map(r=>r.join('|')).join('\n').toUpperCase();
+        if(flat.includes('DIRETA') && flat.includes('INDIRETA')){
+          buildEfetivo(rows); return;
         }
       }catch(e){ continue; }
     }
-    if(!rows){ renderError(); return; }
-    buildEfetivo(rows);
+    renderError();
   }
 
   function buildEfetivo(rows){
-    // Detecta cabeçalho
-    let hIdx = rows.findIndex(r => {
-      const j = r.join('|').toLowerCase();
-      return j.includes('data') || j.includes('direta') || j.includes('turno');
+    // Linha 1 (idx 1): datas nas colunas C em diante (idx 2+)
+    const dateRow = rows[1] || [];
+    // Linha 13 (idx 13): DIRETA Total
+    // Linha 21 (idx 21): INDIRETA Total
+    // Linha 22 (idx 22): Total geral
+    // Encontra as linhas por conteúdo para robustez
+    let diretaRowIdx = -1, indirRowIdx = -1;
+    rows.forEach((r,i)=>{
+      const k = (r[0]||'').trim().toUpperCase();
+      if(k.includes('DIRETA') && k.includes('TOTAL') && !k.includes('INDIRETA')) diretaRowIdx = i;
+      if(k.includes('INDIRETA') && k.includes('TOTAL')) indirRowIdx = i;
     });
 
-    let dataRows = [];
-    if(hIdx >= 0){
-      const h = rows[hIdx].map(c=>c.toLowerCase().trim());
-      const iData  = h.findIndex(c=>c.includes('data'));
-      const iSem   = h.findIndex(c=>c.includes('semana')||c.includes('dia da'));
-      const iTurno = h.findIndex(c=>c.includes('turno'));
-      const iDir   = h.findIndex(c=>c.includes('direta')&&!c.includes('in'));
-      const iInd   = h.findIndex(c=>c.includes('indireta')||c.includes('indir'));
+    if(diretaRowIdx < 0 || indirRowIdx < 0){ renderError(); return; }
 
-      rows.slice(hIdx+1).forEach(r=>{
-        const d = (r[iData>=0?iData:0]||'').trim();
-        if(!d||!/\d/.test(d)) return;
-        dataRows.push({
-          data: d,
-          semana: iSem>=0?(r[iSem]||'').trim():'',
-          turno: iTurno>=0?(r[iTurno]||'DIA').trim().toUpperCase():'DIA',
-          direta: ni(r[iDir>=0?iDir:3]),
-          indir:  ni(r[iInd>=0?iInd:4]),
-        });
-      });
-    } else {
-      // Sem cabeçalho: col0=data, col1=semana, col2=turno, col3=direta, col4=indireta
-      rows.forEach(r=>{
-        const d=(r[0]||'').trim();
-        if(!d||!/\d/.test(d)) return;
-        dataRows.push({ data:d, semana:(r[1]||'').trim(), turno:(r[2]||'DIA').toUpperCase(), direta:ni(r[3]), indir:ni(r[4]) });
-      });
+    const diretaRow = rows[diretaRowIdx];
+    const indirRow  = rows[indirRowIdx];
+
+    // Coleta datas e valores a partir da coluna C (idx 2)
+    const labels=[], diretaData=[], indirData=[], totais=[], rawDates=[];
+    for(let c=2; c<dateRow.length; c++){
+      const rawDate = (dateRow[c]||'').trim();
+      if(!rawDate || rawDate==='DIA' || rawDate==='NOITE') continue;
+      const d = ni(diretaRow[c]);
+      const i = ni(indirRow[c]);
+      if(d===0 && i===0) continue; // pula colunas sem dados
+      labels.push(fmtDate(rawDate));
+      rawDates.push(rawDate);
+      diretaData.push(d);
+      indirData.push(i);
+      totais.push(d+i);
     }
 
-    if(!dataRows.length){ renderError(); return; }
-
-    // Agrupa por data+turno
-    const entries=[]; const map={};
-    dataRows.forEach(r=>{
-      const turno = r.turno.includes('NOITE')?'NOITE':'DIA';
-      const key = r.data+'|'+turno;
-      if(!map[key]){ map[key]={data:r.data,semana:r.semana,turno,direta:0,indir:0}; entries.push(map[key]); }
-      map[key].direta+=r.direta; map[key].indir+=r.indir;
-    });
-
-    // Ordena por data → DIA antes de NOITE
-    entries.sort((a,b)=>{
-      const fa=a.data.split('/'); const fb=b.data.split('/');
-      const da=new Date(+fa[2]||2026,+fa[1]-1,+fa[0]); const db=new Date(+fb[2]||2026,+fb[1]-1,+fb[0]);
-      if(da-db!==0) return da-db;
-      return a.turno==='DIA'?-1:1;
-    });
-
-    const totais   = entries.map(e=>e.direta+e.indir);
-    const diretaD  = entries.map(e=>e.direta);
-    const indirD   = entries.map(e=>e.indir);
-
-    // Labels de 2 linhas: turno + data
-    const labels = entries.map(e=>{ const d=e.data.slice(0,5); return [e.turno,d]; });
+    if(!labels.length){ renderError(); return; }
 
     // Period label
-    const datas = [...new Set(entries.map(e=>e.data))];
     const el = document.getElementById('efetivo-period');
-    if(el) el.textContent = `${datas[0]} a ${datas[datas.length-1]} · ${datas.length} dias · ${entries.length} turnos`;
+    if(el) el.textContent = `${labels[0]} a ${labels[labels.length-1]} · ${labels.length} dias`;
 
     // Build canvas
     const wrap = document.getElementById('efetivo-wrap');
@@ -1363,34 +1351,17 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     if(efChart){ efChart.destroy(); efChart=null; }
     const ctx = document.getElementById('efeitoCanvas').getContext('2d');
 
-    // Plugin: total acima + semana abaixo
-    const topLabelPlugin = {
-      id:'efeitoLabels',
+    // Plugin: total acima de cada barra
+    const topPlugin = {
+      id:'efTotals',
       afterDatasetsDraw(chart){
         const {ctx} = chart;
         ctx.save();
-        ctx.font = 'bold 10px Inter,sans-serif';
+        ctx.font = 'bold 11px Inter,sans-serif';
         ctx.fillStyle = '#1B2F4E';
         ctx.textAlign = 'center';
-        const meta1 = chart.getDatasetMeta(1); // Direta (topo)
-        meta1.data.forEach((bar,i)=>{
-          if(totais[i]>0) ctx.fillText(totais[i], bar.x, bar.y-4);
-        });
-        // Dia da semana abaixo — centralizado entre DIA e NOITE do mesmo dia
-        ctx.font = '9px Inter,sans-serif';
-        ctx.fillStyle = '#8FA0B4';
-        const bottomY = chart.chartArea.bottom+40;
-        const seenDates={};
-        entries.forEach((e,i)=>{
-          if(e.semana && !seenDates[e.data]){
-            seenDates[e.data]=true;
-            const barDIA = chart.getDatasetMeta(0).data[i];
-            // Tenta pegar o NOITE para centralizar
-            const nextEntry = entries[i+1];
-            const barNOITE = nextEntry&&nextEntry.data===e.data ? chart.getDatasetMeta(0).data[i+1] : null;
-            const cx = barNOITE ? (barDIA.x + barNOITE.x)/2 : barDIA.x;
-            ctx.fillText(e.semana.charAt(0).toUpperCase()+e.semana.slice(1,3).toLowerCase(), cx, bottomY);
-          }
+        chart.getDatasetMeta(1).data.forEach((bar,i)=>{
+          if(totais[i]>0) ctx.fillText(totais[i], bar.x, bar.y-5);
         });
         ctx.restore();
       }
@@ -1398,12 +1369,12 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
 
     efChart = new Chart(ctx,{
       type:'bar',
-      plugins:[topLabelPlugin],
+      plugins:[topPlugin],
       data:{
         labels,
         datasets:[
-          { label:'Indireta', data:indirD, backgroundColor:'#DC2626', stack:'s', borderRadius:{topLeft:2,topRight:2}, borderSkipped:false, categoryPercentage:0.75, barPercentage:0.85 },
-          { label:'Direta',   data:diretaD, backgroundColor:'#1D6FB5', stack:'s', borderRadius:{topLeft:2,topRight:2}, borderSkipped:'bottom', categoryPercentage:0.75, barPercentage:0.85 }
+          { label:'Indireta', data:indirData,  backgroundColor:'#DC2626', stack:'s', borderRadius:{topLeft:2,topRight:2}, borderSkipped:false, categoryPercentage:0.7, barPercentage:0.85 },
+          { label:'Direta',   data:diretaData, backgroundColor:'#1D6FB5', stack:'s', borderRadius:{topLeft:2,topRight:2}, borderSkipped:'bottom', categoryPercentage:0.7, barPercentage:0.85 }
         ]
       },
       options:{
@@ -1414,16 +1385,17 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
           tooltip:{
             backgroundColor:'#1B2F4E',titleColor:'#94A3B8',bodyColor:'#E2E8F0',padding:10,cornerRadius:8,
             callbacks:{
-              title: items=>{ const e=entries[items[0].dataIndex]; return `${e.data} · ${e.turno}${e.semana?' · '+e.semana:''}`; },
+              title: items=>[`Data: ${labels[items[0].dataIndex]}`],
+              label: item=>` ${item.dataset.label}: ${item.parsed.y}`,
               afterBody: items=>[`Total: ${totais[items[0].dataIndex]}`]
             }
           }
         },
         scales:{
-          x:{ stacked:true, ticks:{color:'#4B5C72',font:{size:10,weight:'600'},maxRotation:0,autoSkip:false}, grid:{display:false} },
-          y:{ stacked:true, min:0, ticks:{color:'#8FA0B4',font:{size:11},stepSize:20}, grid:{color:'rgba(0,0,0,0.05)'} }
+          x:{ stacked:true, ticks:{ color:'#4B5C72', font:{size:11,weight:'600'}, maxRotation:45, autoSkip:false }, grid:{display:false} },
+          y:{ stacked:true, min:0, ticks:{color:'#8FA0B4',font:{size:11},stepSize:10}, grid:{color:'rgba(0,0,0,0.05)'} }
         },
-        layout:{padding:{top:28,bottom:28}}
+        layout:{padding:{top:30,bottom:10}}
       }
     });
   }
