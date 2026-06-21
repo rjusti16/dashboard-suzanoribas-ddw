@@ -491,12 +491,12 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     </div>
     <div class="kpi c-blue">
       <div class="kpi-lbl">Atividades</div>
-      <div class="kpi-val blue" id="kpi-total">120</div>
-      <div class="kpi-sub">27 concluídas &nbsp;·&nbsp; 10 em andamento</div>
+      <div class="kpi-val blue" id="kpi-total">94</div>
+      <div class="kpi-sub">18 concluídas &nbsp;·&nbsp; 1 em andamento</div>
     </div>
     <div class="kpi c-red">
       <div class="kpi-lbl">Atrasadas</div>
-      <div class="kpi-val red" id="kpi-atrasadas">1</div>
+      <div class="kpi-val red" id="kpi-atrasadas">6</div>
       <div class="kpi-sub">Andaime DDW4 — Fase Parada</div>
     </div>
   </div>
@@ -565,19 +565,19 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;width:100%;">
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:4px;height:36px;border-radius:99px;background:var(--green);flex-shrink:0;"></div>
-            <div><div id="dl-concluidas" style="font-size:22px;font-weight:700;color:var(--green);line-height:1;">27</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Concluídas — 22,5%</div></div>
+            <div><div id="dl-concluidas" style="font-size:22px;font-weight:700;color:var(--green);line-height:1;">18</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Concluídas — 19%</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:4px;height:36px;border-radius:99px;background:var(--blue);flex-shrink:0;"></div>
-            <div><div id="dl-andamento" style="font-size:22px;font-weight:700;color:var(--blue);line-height:1;">10</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Em andamento — 8,3%</div></div>
+            <div><div id="dl-andamento" style="font-size:22px;font-weight:700;color:var(--blue);line-height:1;">1</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Em andamento — 1%</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:4px;height:36px;border-radius:99px;background:var(--red);flex-shrink:0;"></div>
-            <div><div id="dl-atrasadas" style="font-size:22px;font-weight:700;color:var(--red);line-height:1;">1</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Atrasada — 0,8%</div></div>
+            <div><div id="dl-atrasadas" style="font-size:22px;font-weight:700;color:var(--red);line-height:1;">6</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Atrasadas — 6%</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:4px;height:36px;border-radius:99px;background:#CBD5E1;flex-shrink:0;"></div>
-            <div><div id="dl-ainiciar" style="font-size:22px;font-weight:700;color:var(--t2);line-height:1;">82</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">A iniciar — 68,4%</div></div>
+            <div><div id="dl-ainiciar" style="font-size:22px;font-weight:700;color:var(--t2);line-height:1;">69</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Não iniciadas — 73%</div></div>
           </div>
         </div>
       </div>
@@ -996,8 +996,8 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   new Chart(document.getElementById('donut'),{
     type:'doughnut',
     data:{
-      labels:['Concluídas','Em andamento','Atrasada','A iniciar'],
-      datasets:[{ data:[27,10,1,82], backgroundColor:['#15803D','#1D4ED8','#B91C1C','#CBD5E1'], borderWidth:3, borderColor:'#FFFFFF', hoverOffset:5 }]
+      labels:['Concluídas','Em andamento','Atrasadas','Não iniciadas'],
+      datasets:[{ data:[18,1,6,69], backgroundColor:['#15803D','#1D4ED8','#B91C1C','#CBD5E1'], borderWidth:3, borderColor:'#FFFFFF', hoverOffset:5 }]
     },
     options:{
       responsive:true, maintainAspectRatio:false, cutout:'65%',
@@ -1006,7 +1006,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
         tooltip:{
           backgroundColor:'#1B2F4E', titleColor:'#94A3B8', bodyColor:'#E2E8F0',
           padding:10, cornerRadius:8,
-          callbacks:{ label: c => ' '+c.label+': '+c.parsed+' tarefas ('+Math.round(c.parsed/120*100)+'%)' }
+          callbacks:{ label: c => ' '+c.label+': '+c.parsed+' tarefas ('+Math.round(c.parsed/94*100)+'%)' }
         }
       }
     }
@@ -1078,16 +1078,16 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     $t('kpi-realizado',fmt(rPct)+'%');
     $t('kpi-previsto',fmt(pPct)+'%');
     $t('kpi-desvio',(dev>=0?'+':'')+fmt(dev)+' p.p.');
-    $t('kpi-total',nTot||120);
+    $t('kpi-total',nTot||94);
     $t('kpi-atrasadas',nAt||1);
     $t('pct-realizado',fmt(rPct)+'%'); $w('bar-realizado',rPct);
     $t('pct-previsto',fmt(pPct)+'%');  $w('bar-previsto',pPct);
     $t('info-desvio',(dev>=0?'+':'')+fmt(dev)+' p.p.');
     $t('info-spi',spiVal?spiVal.toFixed(3):'0,964');
     $t('info-banner','Projeto com desvio de '+(dev>=0?'+':'')+fmt(dev)+' p.p. '+(dev<0?'abaixo':'acima')+' do previsto');
-    $t('dl-concluidas',nConc||27); $t('dl-andamento',nAnd||10);
-    $t('dl-atrasadas',nAt||1);     $t('dl-ainiciar',nAI||82);
-    window._donutChart?.data.datasets[0] && (window._donutChart.data.datasets[0].data=[nConc||27,nAnd||10,nAt||1,nAI||82], window._donutChart.update());
+    $t('dl-concluidas',nConc||18); $t('dl-andamento',nAnd||1);
+    $t('dl-atrasadas',nAt||6);     $t('dl-ainiciar',nAI||69);
+    window._donutChart?.data.datasets[0] && (window._donutChart.data.datasets[0].data=[nConc||18,nAnd||1,nAt||6,nAI||69], window._donutChart.update());
   }
 
   function applyCurvaS(rows){
