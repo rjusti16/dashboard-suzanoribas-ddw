@@ -856,10 +856,10 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       <table class="task-table">
         <thead>
           <tr>
-            <th style="width:90px;">EDT</th>
+            <th style="width:100px;">EDT</th>
             <th>Tarefa</th>
             <th style="width:80px;">Duração</th>
-            <th style="width:150px;">Término</th>
+            <th style="width:160px;">Término</th>
             <th style="width:80px;">% Prev.</th>
             <th style="width:80px;">% Real.</th>
             <th style="width:72px;">Desvio</th>
@@ -868,24 +868,10 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
         </thead>
         <tbody>
           <tr>
-            <td><span class="task-mono">1.2.1.5</span></td>
-            <td>
-              <div class="task-name">Fabricação da Tubulação — 2020-0063-LFL-150</div>
-            </td>
-            <td>12 hrs</td>
-            <td style="color:var(--red);font-weight:500;">Sex 19/06/26 10:00</td>
-            <td style="font-weight:600;color:var(--t2);">83%</td>
-            <td style="font-weight:700;color:var(--amber);">40%</td>
-            <td style="font-weight:700;color:var(--red);">−43%</td>
-            <td><span class="spill warn">Acelerar</span></td>
-          </tr>
-          <tr>
             <td><span class="task-mono">2.1.1.2</span></td>
-            <td>
-              <div class="task-name">Montagem do andaime DDW4</div>
-            </td>
+            <td><div class="task-name">Montagem do andaime DDW4</div></td>
             <td>15 hrs</td>
-            <td style="color:var(--red);font-weight:500;">Qua 17/06/26 19:00 ⚠</td>
+            <td style="color:var(--red);font-weight:600;">Qua 17/06/26 19:00 ⚠</td>
             <td style="font-weight:600;color:var(--t2);">100%</td>
             <td style="font-weight:700;color:var(--red);">20%</td>
             <td style="font-weight:700;color:var(--red);">−80%</td>
@@ -893,9 +879,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
           </tr>
           <tr>
             <td><span class="task-mono">2.1.3.1.1</span></td>
-            <td>
-              <div class="task-name">Montagem da tubulação e suportes — 2020-0C</div>
-            </td>
+            <td><div class="task-name">Montagem da tubulação e suportes — 2020-0C</div></td>
             <td>35 hrs</td>
             <td style="color:var(--red);font-weight:500;">Seg 22/06/26 01:00</td>
             <td style="font-weight:600;color:var(--t2);">57%</td>
@@ -905,9 +889,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
           </tr>
           <tr>
             <td><span class="task-mono">2.1.3.1.2</span></td>
-            <td>
-              <div class="task-name">Montagem da tubulação e suportes — 2020-0C</div>
-            </td>
+            <td><div class="task-name">Montagem da tubulação e suportes — 2020-0C</div></td>
             <td>35 hrs</td>
             <td style="color:var(--red);font-weight:500;">Seg 22/06/26 01:00</td>
             <td style="font-weight:600;color:var(--t2);">57%</td>
@@ -916,10 +898,18 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
             <td><span class="spill danger">Iniciar</span></td>
           </tr>
           <tr>
+            <td><span class="task-mono">1.2.1.5</span></td>
+            <td><div class="task-name">Fabricação da Tubulação — 2020-0063-LFL-150</div></td>
+            <td>12 hrs</td>
+            <td style="color:var(--amber);font-weight:500;">Sex 19/06/26 10:00</td>
+            <td style="font-weight:600;color:var(--t2);">83%</td>
+            <td style="font-weight:700;color:var(--amber);">40%</td>
+            <td style="font-weight:700;color:var(--red);">−43%</td>
+            <td><span class="spill warn">Acelerar</span></td>
+          </tr>
+          <tr>
             <td><span class="task-mono">2.1.3.2.1</span></td>
-            <td>
-              <div class="task-name">Montagem da tubulação e suportes — 2020-0C</div>
-            </td>
+            <td><div class="task-name">Montagem da tubulação e suportes — 2020-0C</div></td>
             <td>35 hrs</td>
             <td style="color:var(--amber);font-weight:500;">Seg 22/06/26 15:00</td>
             <td style="font-weight:600;color:var(--t2);">26%</td>
@@ -929,9 +919,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
           </tr>
           <tr>
             <td><span class="task-mono">2.1.3.2.2</span></td>
-            <td>
-              <div class="task-name">Montagem da tubulação e suportes — 2020-0C</div>
-            </td>
+            <td><div class="task-name">Montagem da tubulação e suportes — 2020-0C</div></td>
             <td>35 hrs</td>
             <td style="color:var(--amber);font-weight:500;">Seg 22/06/26 15:00</td>
             <td style="font-weight:600;color:var(--t2);">26%</td>
@@ -1084,6 +1072,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       ]);
 
       applyRelatorio(parseCSV(gRel));
+      applyAtrasadas(parseCSV(gRel));
       applyCurvaS(parseCSV(gCurva));
       applyCronograma(parseCSV(gCrono));
 
@@ -1164,6 +1153,40 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       window._curvaChart.data.datasets[1].data=real;
       window._curvaChart.update();
     }
+  }
+
+  function applyAtrasadas(rows){
+    // Tarefas atrasadas: linhas 36-41 da planilha (índices 35-40)
+    // Colunas: A=EDT, B=Tarefa, C=Duração, D=Término, E=%Previsto, F=%Realizado, G=Desvio, H=Ação
+    const tbody = document.querySelector('.task-table tbody');
+    if(!tbody) return;
+    const dataRows = rows.slice(35, 41).filter(r => (r[0]||'').trim() && (r[1]||'').trim());
+    if(!dataRows.length) return;
+
+    tbody.innerHTML = dataRows.map(r => {
+      const edt   = (r[0]||'').trim();
+      const nome  = (r[1]||'').trim();
+      const dur   = (r[2]||'').trim();
+      const term  = (r[3]||'').trim();
+      const prev  = (r[4]||'').trim();
+      const real  = (r[5]||'').trim();
+      const dev   = (r[6]||'').trim();
+      const acao  = (r[7]||'').trim();
+      const devNum = parseFloat((dev||'0').replace('%','').replace(',','.'));
+      const devColor = devNum <= -50 ? 'var(--red)' : devNum < 0 ? 'var(--amber)' : 'var(--green)';
+      const termColor = term.includes('17/06')||term.includes('19/06') ? 'var(--red)' : 'var(--amber)';
+      const acaoPill = acao==='Priorizar' ? 'danger' : acao==='Acelerar' ? 'warn' : 'danger';
+      return `<tr>
+        <td><span class="task-mono">${edt}</span></td>
+        <td><div class="task-name">${nome}</div></td>
+        <td>${dur}</td>
+        <td style="color:${termColor};font-weight:500;">${term}</td>
+        <td style="font-weight:600;color:var(--t2);">${prev}</td>
+        <td style="font-weight:700;color:var(--amber);">${real}</td>
+        <td style="font-weight:700;color:${devColor};">${dev}</td>
+        <td><span class="spill ${acaoPill}">${acao}</span></td>
+      </tr>`;
+    }).join('');
   }
 
   function applyCronograma(rows){
