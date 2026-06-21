@@ -1085,7 +1085,8 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
 
     const pPct = pG>1 ? pG : pG*100 || 23.69;
     const rPct = rG>1 ? rG : rG*100 || 22.83;
-    const dev  = desvio ? (desvio>1?desvio:desvio*100) : (rPct - pPct);
+    // Desvio já vem em p.p. direto da planilha (ex: -0,86), não multiplicar por 100
+    const dev  = desvio ? desvio : (rPct - pPct);
 
     $t('kpi-realizado', fmt(rPct)+'%');
     $t('kpi-previsto',  fmt(pPct)+'%');
