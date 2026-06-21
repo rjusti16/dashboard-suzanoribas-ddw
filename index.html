@@ -1288,13 +1288,32 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   async function loadEfetivo(){
+    // Usa Google Visualization Query API — sem CORS
+    // Extrai o ID da planilha do link de edição
+    const SHEET_ID = '1Vvnt4OHhJu4_9yTSLjUFjrk6eg7v19n_';
+    const GID      = '1513214200';
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
+
     try{
-      const csv = await fetch(EFETIVO_URL).then(r=>r.text());
+      const resp = await fetch(url);
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      const csv = await resp.text();
+      console.log('CSV recebido, linhas:', csv.split('\n').length, '| preview:', csv.slice(0,150));
       const rows = parseCSV(csv);
       buildEfetivo(rows);
     }catch(e){
-      console.error('Erro efetivo:', e);
-      renderError();
+      console.error('Erro fetch efetivo gviz:', e.message);
+      // Fallback: tenta URL pubhtml com gviz
+      try{
+        const url2 = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Efetivo`;
+        const resp2 = await fetch(url2);
+        const csv2 = await resp2.text();
+        console.log('CSV fallback linhas:', csv2.split('\n').length);
+        buildEfetivo(parseCSV(csv2));
+      }catch(e2){
+        console.error('Erro fallback:', e2.message);
+        renderError();
+      }
     }
   }
 
