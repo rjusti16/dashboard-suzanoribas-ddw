@@ -1320,13 +1320,33 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
 
     // Coleta datas e valores a partir da coluna C (idx 2)
     const labels=[], diretaData=[], indirData=[], totais=[], rawDates=[];
+    const diasSemana = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+    function getWeekday(raw){
+      // Google Sheets exporta M/D/YYYY
+      const m = raw.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if(m){
+        const dt = new Date(+m[3], +m[1]-1, +m[2]);
+        return diasSemana[dt.getDay()];
+      }
+      // Tenta d-mmm (19-jun)
+      const m2 = raw.trim().match(/^(\d{1,2})-([a-zA-Zê]+)\.?$/);
+      if(m2){
+        const monthMap2={jan:0,fev:1,feb:1,mar:2,abr:3,apr:3,mai:4,may:4,jun:5,jul:6,ago:7,aug:7,set:8,sep:8,out:9,oct:9,nov:10,dez:11,dec:11};
+        const mo = monthMap2[(m2[2]||'').toLowerCase().slice(0,3)];
+        if(mo!==undefined){ const dt=new Date(2026,mo,+m2[1]); return diasSemana[dt.getDay()]; }
+      }
+      return '';
+    }
+
     for(let c=2; c<dateRow.length; c++){
       const rawDate = (dateRow[c]||'').trim();
       if(!rawDate || rawDate==='DIA' || rawDate==='NOITE') continue;
       const d = ni(diretaRow[c]);
       const i = ni(indirRow[c]);
-      if(d===0 && i===0) continue; // pula colunas sem dados
-      labels.push(fmtDate(rawDate));
+      if(d===0 && i===0) continue;
+      const wd = getWeekday(rawDate);
+      labels.push([fmtDate(rawDate), wd]);   // array = 2 linhas no Chart.js
       rawDates.push(rawDate);
       diretaData.push(d);
       indirData.push(i);
@@ -1379,14 +1399,27 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
           tooltip:{
             backgroundColor:'#1B2F4E',titleColor:'#94A3B8',bodyColor:'#E2E8F0',padding:10,cornerRadius:8,
             callbacks:{
-              title: items=>[`Data: ${labels[items[0].dataIndex]}`],
+              title: items=>{ const l=labels[items[0].dataIndex]; return Array.isArray(l)?`${l[0]} · ${l[1]}`:`${l}`; },
               label: item=>` ${item.dataset.label}: ${item.parsed.y}`,
               afterBody: items=>[`Total: ${totais[items[0].dataIndex]}`]
             }
           }
         },
         scales:{
-          x:{ stacked:true, ticks:{ color:'#4B5C72', font:{size:11,weight:'600'}, maxRotation:45, autoSkip:false }, grid:{display:false} },
+          x:{
+            stacked:true,
+            ticks:{
+              color:'#4B5C72',
+              font:{size:10,weight:'600'},
+              maxRotation:0,
+              autoSkip:false,
+              callback: function(val,idx){
+                const l = labels[idx];
+                return Array.isArray(l) ? l : [l];
+              }
+            },
+            grid:{display:false}
+          },
           y:{ stacked:true, min:0, ticks:{color:'#8FA0B4',font:{size:11},stepSize:10}, grid:{color:'rgba(0,0,0,0.05)'} }
         },
         layout:{padding:{top:30,bottom:10}}
