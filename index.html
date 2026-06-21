@@ -458,7 +458,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       <span class="hdr-logo-tag">Contratante</span>
     </div>
     <div class="hdr-meta">
-      <div class="hdr-meta-date">Atualizado: 19/06/2026, 08:00</div>
+      <div class="hdr-meta-date" id="last-update">Atualizado: 19/06/2026, 08:00</div>
       <div class="hdr-meta-user">Gestão de Projetos &nbsp;·&nbsp; Projeto Cerrado</div>
     </div>
     <button class="btn" onclick="window.location.reload()">↻ &nbsp;Atualizar</button>
@@ -472,27 +472,27 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   <div class="kpi-strip">
     <div class="kpi c-green">
       <div class="kpi-lbl">% Realizado</div>
-      <div class="kpi-val green">22,83%</div>
+      <div class="kpi-val green" id="kpi-realizado">22,83%</div>
       <div class="kpi-sub">Avanço físico global acumulado</div>
     </div>
     <div class="kpi c-navy">
       <div class="kpi-lbl">% Previsto</div>
-      <div class="kpi-val navy">23,69%</div>
+      <div class="kpi-val navy" id="kpi-previsto">23,69%</div>
       <div class="kpi-sub">Planejado acumulado na data-base</div>
     </div>
     <div class="kpi c-red">
       <div class="kpi-lbl">Desvio</div>
-      <div class="kpi-val red">−0,86 p.p.</div>
+      <div class="kpi-val red" id="kpi-desvio">−0,86 p.p.</div>
       <div class="kpi-sub">Abaixo do previsto · SPI 0,964</div>
     </div>
     <div class="kpi c-blue">
       <div class="kpi-lbl">Atividades</div>
-      <div class="kpi-val blue">120</div>
+      <div class="kpi-val blue" id="kpi-total">120</div>
       <div class="kpi-sub">27 concluídas &nbsp;·&nbsp; 10 em andamento</div>
     </div>
     <div class="kpi c-red">
       <div class="kpi-lbl">Atrasadas</div>
-      <div class="kpi-val red">1</div>
+      <div class="kpi-val red" id="kpi-atrasadas">1</div>
       <div class="kpi-sub">Andaime DDW4 — Fase Parada</div>
     </div>
   </div>
@@ -513,35 +513,35 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
           <div style="margin-bottom:18px;">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
               <span style="font-size:13px;color:var(--t2);">Realizado</span>
-              <span style="font-size:15px;font-weight:700;color:var(--amber);">22,83%</span>
+              <span id="pct-realizado" style="font-size:15px;font-weight:700;color:var(--amber);">22,83%</span>
             </div>
             <div style="height:16px;background:#E8EDF3;border-radius:99px;overflow:hidden;">
-              <div style="height:100%;width:22.83%;border-radius:99px;background:linear-gradient(90deg,#15803D,#22C55E);"></div>
+              <div id="bar-realizado" style="height:100%;width:22.83%;border-radius:99px;background:linear-gradient(90deg,#15803D,#22C55E);"></div>
             </div>
           </div>
 
           <div style="margin-bottom:20px;">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
               <span style="font-size:13px;color:var(--t2);">Previsto</span>
-              <span style="font-size:15px;font-weight:700;color:var(--t2);">23,69%</span>
+              <span id="pct-previsto" style="font-size:15px;font-weight:700;color:var(--t2);">23,69%</span>
             </div>
             <div style="height:16px;background:#E8EDF3;border-radius:99px;overflow:hidden;">
-              <div style="height:100%;width:23.69%;border-radius:99px;background:linear-gradient(90deg,#64748B,#94A3B8);"></div>
+              <div id="bar-previsto" style="height:100%;width:23.69%;border-radius:99px;background:linear-gradient(90deg,#64748B,#94A3B8);"></div>
             </div>
           </div>
 
           <div style="background:var(--red-bg);border:1px solid var(--red-bd);border-radius:var(--r-sm);padding:13px 18px;font-size:13px;font-weight:500;color:#991B1B;display:flex;align-items:center;gap:8px;margin-bottom:20px;">
-            <span>⚠</span> Projeto com desvio de <strong>−0,86 p.p.</strong> abaixo do previsto
+            <span>⚠</span> <span id="info-banner">Projeto com desvio de −0,86 p.p. abaixo do previsto</span>
           </div>
 
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--border);padding-top:16px;">
             <div style="padding-right:20px;">
               <div style="font-size:10px;color:var(--t3);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Desvio</div>
-              <div style="font-size:20px;font-weight:700;color:var(--red);">−0,86 p.p.</div>
+              <div id="info-desvio" style="font-size:20px;font-weight:700;color:var(--red);">−0,86 p.p.</div>
             </div>
             <div style="padding:0 20px;border-left:1px solid var(--border);">
               <div style="font-size:10px;color:var(--t3);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">SPI</div>
-              <div style="font-size:20px;font-weight:700;color:var(--red);">0,964</div>
+              <div id="info-spi" style="font-size:20px;font-weight:700;color:var(--red);">0,964</div>
             </div>
             <div style="padding-left:20px;border-left:1px solid var(--border);">
               <div style="font-size:10px;color:var(--t3);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Término previsto</div>
@@ -561,19 +561,19 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;width:100%;">
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:4px;height:36px;border-radius:99px;background:var(--green);flex-shrink:0;"></div>
-            <div><div style="font-size:22px;font-weight:700;color:var(--green);line-height:1;">27</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Concluídas — 22,5%</div></div>
+            <div><div id="dl-concluidas" style="font-size:22px;font-weight:700;color:var(--green);line-height:1;">27</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Concluídas — 22,5%</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:4px;height:36px;border-radius:99px;background:var(--blue);flex-shrink:0;"></div>
-            <div><div style="font-size:22px;font-weight:700;color:var(--blue);line-height:1;">10</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Em andamento — 8,3%</div></div>
+            <div><div id="dl-andamento" style="font-size:22px;font-weight:700;color:var(--blue);line-height:1;">10</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Em andamento — 8,3%</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:4px;height:36px;border-radius:99px;background:var(--red);flex-shrink:0;"></div>
-            <div><div style="font-size:22px;font-weight:700;color:var(--red);line-height:1;">1</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Atrasada — 0,8%</div></div>
+            <div><div id="dl-atrasadas" style="font-size:22px;font-weight:700;color:var(--red);line-height:1;">1</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Atrasada — 0,8%</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:4px;height:36px;border-radius:99px;background:#CBD5E1;flex-shrink:0;"></div>
-            <div><div style="font-size:22px;font-weight:700;color:var(--t2);line-height:1;">82</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">A iniciar — 68,4%</div></div>
+            <div><div id="dl-ainiciar" style="font-size:22px;font-weight:700;color:var(--t2);line-height:1;">82</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">A iniciar — 68,4%</div></div>
           </div>
         </div>
       </div>
@@ -595,12 +595,12 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
             <div class="eap-bars">
               <div class="eap-bar-row">
                 <span class="eap-bar-lbl">Prev.</span>
-                <div class="eap-bg"><div class="eap-fill" style="width:41.18%;background:#94A3B8;"></div></div>
-                <span class="eap-pct" style="color:var(--t2);">41,18%</span>
+                <div class="eap-bg"><div class="eap-fill" style="id="bp-121" style="width:41.18%;background:#94A3B8";"></div></div>
+                <span class="eap-pct" style="color:var(--t2);"id="pp-121">41,18%</span>
               </div>
               <div class="eap-bar-row">
                 <span class="eap-bar-lbl">Real.</span>
-                <div class="eap-bg"><div class="eap-fill" style="width:40.94%;background:var(--amber);"></div></div>
+                <div class="eap-bg"><div class="eap-fill" style="id="br-121" style="width:40.94%;background:var(--amber)";"></div></div>
                 <span class="eap-pct" style="color:var(--amber);">40,94%</span>
               </div>
             </div>
@@ -617,12 +617,12 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
             <div class="eap-bars">
               <div class="eap-bar-row">
                 <span class="eap-bar-lbl">Prev.</span>
-                <div class="eap-bg"><div class="eap-fill" style="width:53.85%;background:#94A3B8;"></div></div>
-                <span class="eap-pct" style="color:var(--t2);">53,85%</span>
+                <div class="eap-bg"><div class="eap-fill" style="id="bp-122" style="width:53.85%;background:#94A3B8";"></div></div>
+                <span class="eap-pct" style="color:var(--t2);"id="pp-122">53,85%</span>
               </div>
               <div class="eap-bar-row">
                 <span class="eap-bar-lbl">Real.</span>
-                <div class="eap-bg"><div class="eap-fill" style="width:100%;background:var(--green);"></div></div>
+                <div class="eap-bg"><div class="eap-fill" style="id="br-122" style="width:100%;background:var(--green)";"></div></div>
                 <span class="eap-pct" style="color:var(--green);">100%</span>
               </div>
             </div>
@@ -639,12 +639,12 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
             <div class="eap-bars">
               <div class="eap-bar-row">
                 <span class="eap-bar-lbl">Prev.</span>
-                <div class="eap-bg"><div class="eap-fill" style="width:33.33%;background:#94A3B8;"></div></div>
-                <span class="eap-pct" style="color:var(--t2);">33,33%</span>
+                <div class="eap-bg"><div class="eap-fill" style="id="bp-211" style="width:33.33%;background:#94A3B8";"></div></div>
+                <span class="eap-pct" style="color:var(--t2);"id="pp-211">33,33%</span>
               </div>
               <div class="eap-bar-row">
                 <span class="eap-bar-lbl">Real.</span>
-                <div class="eap-bg"><div class="eap-fill" style="width:20%;background:var(--red);"></div></div>
+                <div class="eap-bg"><div class="eap-fill" style="id="br-211" style="width:20%;background:var(--red)";"></div></div>
                 <span class="eap-pct" style="color:var(--red);">20,00%</span>
               </div>
             </div>
@@ -661,12 +661,12 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
             <div class="eap-bars">
               <div class="eap-bar-row">
                 <span class="eap-bar-lbl">Prev.</span>
-                <div class="eap-bg"><div class="eap-fill" style="width:13.70%;background:#94A3B8;"></div></div>
+                <div class="eap-bg"><div class="eap-fill" style="id="bp-212" style="width:13.70%;background:#94A3B8";"></div></div>
                 <span class="eap-pct" style="color:var(--t2);">13,70%</span>
               </div>
               <div class="eap-bar-row">
                 <span class="eap-bar-lbl">Real.</span>
-                <div class="eap-bg"><div class="eap-fill" style="width:13.70%;background:var(--blue);"></div></div>
+                <div class="eap-bg"><div class="eap-fill" style="id="br-212" style="width:13.70%;background:var(--blue)";"></div></div>
                 <span class="eap-pct" style="color:var(--blue);">13,70%</span>
               </div>
             </div>
@@ -1006,6 +1006,142 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       }
     }
   });
+
+  // ═══════════════════════════════════════════════
+  // INTEGRAÇÃO GOOGLE SHEETS — atualiza ao carregar
+  // ═══════════════════════════════════════════════
+  const SHEET = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNqc8Irh9EOD1_MmqM_lhODa9ipsRtrXYL_-Osy5v1WhJYeK_vl6eF-XRX-RIr8A/pub?output=csv';
+
+  function csvUrl(gid){ return gid!==undefined ? SHEET+'&gid='+gid : SHEET; }
+
+  function parseCSV(text){
+    return text.trim().split('\n').map(line=>{
+      const cols=[]; let cur='', inQ=false;
+      for(const c of line){
+        if(c==='"'){inQ=!inQ;}
+        else if(c===','&&!inQ){cols.push(cur.trim());cur='';}
+        else{cur+=c;}
+      }
+      cols.push(cur.trim());
+      return cols;
+    });
+  }
+
+  function n(v){ return parseFloat((v||'').replace(',','.'))||0; }
+  function fmt(v){ return Math.abs(v)<0.001?'0,00':v.toFixed(2).replace('.',','); }
+  function $t(id,v){ const e=document.getElementById(id); if(e)e.textContent=v; }
+  function $w(id,p){ const e=document.getElementById(id); if(e)e.style.width=Math.min(Math.max(p,0),100)+'%'; }
+
+  async function refresh(){
+    try{
+      // Busca abas em paralelo (gid descobertos da planilha publicada)
+      const [gRel, gCurva, gCrono] = await Promise.all([
+        fetch(csvUrl()).then(r=>r.text()),          // primeira aba = Relatório Gerencial
+        fetch(csvUrl(1217384666)).then(r=>r.text()), // Curva S
+        fetch(csvUrl(1862791670)).then(r=>r.text()), // Cronograma Atual
+      ]);
+
+      applyRelatorio(parseCSV(gRel));
+      applyCurvaS(parseCSV(gCurva));
+      applyCronograma(parseCSV(gCrono));
+
+      const ts = new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+      $t('last-update','Atualizado: '+ts);
+    }catch(e){ console.warn('Sheets offline, usando dados padrão.',e); }
+  }
+
+  function applyRelatorio(rows){
+    let pG=0,rG=0,nConc=0,nAnd=0,nAt=0,nNI=0,nTot=0,spiVal=0;
+    rows.forEach(r=>{
+      const k=(r[0]||'').trim();
+      if(/% Prev.*Fís|Previsto.*Físico/i.test(k)&&r[1]) pG=n(r[1]);
+      if(/% Concl.*Fís|Realizado.*Físico/i.test(k)&&r[1]) rG=n(r[1]);
+      if(/SPI/i.test(k)&&r[1]&&n(r[1])>0) spiVal=n(r[1]);
+      if(/Concluídas.*100|100%/i.test(k)&&r[1]) nConc=n(r[1]);
+      if(/Andamento|1-99/i.test(k)&&r[1]) nAnd=n(r[1]);
+      if(/Não Inicia|0%\)/i.test(k)&&r[1]) nNI=n(r[1]);
+      if(/Total de Tarefa/i.test(k)&&r[1]) nTot=n(r[1]);
+    });
+    if(!pG||!rG){ // fallback: tenta linha do projeto raiz
+      rows.forEach(r=>{ if(r[0]==='0'||r[0]==='Projeto'){ pG=pG||n(r[3]); rG=rG||n(r[4]); } });
+    }
+    const pPct=pG>1?pG:pG*100, rPct=rG>1?rG:rG*100;
+    const dev=rPct-pPct;
+    nAt=Math.max(0,nTot-nConc-nAnd-nNI);
+    const nAI=Math.max(0,nTot-nConc-nAnd-nAt);
+
+    $t('kpi-realizado',fmt(rPct)+'%');
+    $t('kpi-previsto',fmt(pPct)+'%');
+    $t('kpi-desvio',(dev>=0?'+':'')+fmt(dev)+' p.p.');
+    $t('kpi-total',nTot||120);
+    $t('kpi-atrasadas',nAt||1);
+    $t('pct-realizado',fmt(rPct)+'%'); $w('bar-realizado',rPct);
+    $t('pct-previsto',fmt(pPct)+'%');  $w('bar-previsto',pPct);
+    $t('info-desvio',(dev>=0?'+':'')+fmt(dev)+' p.p.');
+    $t('info-spi',spiVal?spiVal.toFixed(3):'0,964');
+    $t('info-banner','Projeto com desvio de '+(dev>=0?'+':'')+fmt(dev)+' p.p. '+(dev<0?'abaixo':'acima')+' do previsto');
+    $t('dl-concluidas',nConc||27); $t('dl-andamento',nAnd||10);
+    $t('dl-atrasadas',nAt||1);     $t('dl-ainiciar',nAI||82);
+    window._donutChart?.data.datasets[0] && (window._donutChart.data.datasets[0].data=[nConc||27,nAnd||10,nAt||1,nAI||82], window._donutChart.update());
+  }
+
+  function applyCurvaS(rows){
+    let pRow=-1,rRow=-1;
+    rows.forEach((r,i)=>{ const k=(r[0]||'').toUpperCase(); if(k.includes('PREV')&&k.includes('ACUM'))pRow=i; if(k.includes('REAL')&&k.includes('ACUM'))rRow=i; });
+    if(pRow<0||rRow<0) return;
+    const mesRow=rows[0]||[], diaRow=rows[1]||[];
+    const monthMap={jan:'01',fev:'02',mar:'03',abr:'04',mai:'05',jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12'};
+    const labels=[],prev=[],real=[];
+    for(let c=1;c<rows[pRow].length;c++){
+      const m=(mesRow[c]||'').toLowerCase().trim().slice(0,3);
+      const d=(diaRow[c]||'').trim().padStart(2,'0');
+      labels.push(d+'/'+(monthMap[m]||'??'));
+      prev.push(n(rows[pRow][c])*100);
+      const rv=rows[rRow][c];
+      real.push(rv&&rv.trim()&&rv.trim()!=='0'?n(rv)*100:null);
+    }
+    if(window._curvaChart){
+      window._curvaChart.data.labels=labels;
+      window._curvaChart.data.datasets[0].data=prev;
+      window._curvaChart.data.datasets[1].data=real;
+      window._curvaChart.update();
+    }
+  }
+
+  function applyCronograma(rows){
+    const h=rows[0]||[];
+    const eC=h.findIndex(c=>/^EDT$/i.test(c));
+    const pC=h.findIndex(c=>/Prev.*Fís/i.test(c));
+    const rC=h.findIndex(c=>/Concl.*Fís/i.test(c));
+    if(eC<0) return;
+    const map={};
+    rows.slice(1).forEach(r=>{ const e=(r[eC]||'').trim(); if(e) map[e]=[n(r[pC]),n(r[rC])]; });
+    const up=(edt,bpId,brId,ppId,prId,dId)=>{
+      const d=map[edt]; if(!d) return;
+      const [p,r]=d;
+      $w(bpId,p); $w(brId,r);
+      $t(ppId,fmt(p)+'%'); $t(prId,fmt(r)+'%');
+      if(dId) $t(dId,(r-p>=0?'+':'')+fmt(r-p));
+    };
+    up('1.2.1','bp-121','br-121','pp-121','pr-121','dev-121');
+    up('1.2.2','bp-122','br-122','pp-122','pr-122','dev-122');
+    up('2.1.1','bp-211','br-211','pp-211','pr-211','dev-211');
+    up('2.1.2','bp-212','br-212','pp-212','pr-212','dev-212');
+    up('2.1.3','bp-213','br-213','pp-213','pr-213','dev-213');
+    up('2.1.3.1','bp-2131','br-2131','pp-2131','pr-2131',null);
+    up('2.1.3.2','bp-2132','br-2132','pp-2132','pr-2132',null);
+    up('2.1.3.3','bp-2133','br-2133','pp-2133','pr-2133',null);
+    up('2.1.3.4','bp-2134','br-2134','pp-2134','pr-2134',null);
+    up('2.1.3.5','bp-2135','br-2135','pp-2135','pr-2135',null);
+    up('2.1.3.6','bp-2136','br-2136','pp-2136','pr-2136',null);
+    up('2.1.4','bp-214','br-214','pp-214','pr-214','dev-214');
+  }
+
+  // Salva referências globais e dispara
+  window._curvaChart = Chart.getChart('curvaS');
+  window._donutChart = Chart.getChart('donut');
+  refresh();
+
 })();
 </script>
 </body>
