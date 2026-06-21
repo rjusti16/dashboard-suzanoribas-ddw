@@ -1255,7 +1255,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
 <script>
 // ── EFETIVO IRMÃOS PASSAÚRA ─────────────────────────────────
 (function(){
-  const EFETIVO_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVckZChPy4OGikaBrVP2K53CVqsTFAehcHV_2myYBC9NCCmTXBTKXt785893xkMw/pub?output=csv';
+  const EFETIVO_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVckZChPy4OGikaBrVP2K53CVqsTFAehcHV_2myYBC9NCCmTXBTKXt785893xkMw/pub?gid=1513214200&single=true&output=csv';
   let efChart = null;
 
   function parseCSV(text){
@@ -1289,20 +1289,14 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   async function loadEfetivo(){
-    // Aba Efetivo — tenta GIDs comuns
-    const gids = [1, 0, 2];
-    for(const gid of gids){
-      try{
-        const csv = await fetch(`${EFETIVO_URL}&gid=${gid}`).then(r=>r.text());
-        const rows = parseCSV(csv);
-        // Verifica se tem "DIRETA" ou "DIRETA Total"
-        const flat = rows.map(r=>r.join('|')).join('\n').toUpperCase();
-        if(flat.includes('DIRETA') && flat.includes('INDIRETA')){
-          buildEfetivo(rows); return;
-        }
-      }catch(e){ continue; }
+    try{
+      const csv = await fetch(EFETIVO_URL).then(r=>r.text());
+      const rows = parseCSV(csv);
+      buildEfetivo(rows);
+    }catch(e){
+      console.error('Erro efetivo:', e);
+      renderError();
     }
-    renderError();
   }
 
   function buildEfetivo(rows){
