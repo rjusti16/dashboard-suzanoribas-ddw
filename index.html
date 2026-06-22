@@ -891,108 +891,11 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
 
 <script>
 (function(){
-  const labels = [];
-  const prev   = [];
-  const real   = [];
-
-  new Chart(document.getElementById('curvaS'),{
-    type:'line',
-    data:{
-      labels,
-      datasets:[
-        {
-          label:'Previsto Acumulado',
-          data: prev,
-          borderColor: '#2563EB',
-          backgroundColor: 'transparent',
-          borderWidth: 2.5,
-          pointRadius: 0,
-          pointHoverRadius: 5,
-          pointBackgroundColor: '#2563EB',
-          fill: false,
-          tension: 0.35,
-          spanGaps: true,
-          order: 2
-        },
-        {
-          label:'Realizado Acumulado',
-          data: real,
-          borderColor: '#E8900A',
-          backgroundColor: 'rgba(16,185,129,0.13)',
-          borderWidth: 2.5,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          pointBackgroundColor: '#E8900A',
-          fill: 'origin',
-          tension: 0.35,
-          spanGaps: false,
-          order: 1
-        }
-      ]
-    },
-    options:{
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins:{
-        legend:{ display: false },
-        tooltip:{
-          backgroundColor: '#1B2F4E',
-          titleColor: '#94A3B8',
-          bodyColor: '#E2E8F0',
-          padding: 12,
-          cornerRadius: 8,
-          callbacks:{
-            label: c => ' ' + c.dataset.label + ': ' + (c.parsed.y != null ? c.parsed.y.toFixed(2) + '%' : '—')
-          }
-        }
-      },
-      scales:{
-        x:{
-          ticks:{
-            color: '#8FA0B4',
-            font: { size: 11 },
-            maxRotation: 0,
-            autoSkip: false,
-            callback: function(val, idx){ return idx % 2 === 0 ? this.getLabelForValue(val) : ''; }
-          },
-          grid:{ color: 'rgba(0,0,0,0.05)' }
-        },
-        y:{
-          min: 0,
-          max: 105,
-          title: { display: true, text: '% Acumulado', color: '#8FA0B4', font: { size: 11 }, padding: { bottom: 8 } },
-          ticks:{ color: '#8FA0B4', font: { size: 11 }, callback: v => v + '%', stepSize: 10 },
-          grid:{ color: 'rgba(0,0,0,0.06)' }
-        }
-      }
-    }
-  });
-
-  new Chart(document.getElementById('donut'),{
-    type:'doughnut',
-    data:{
-      labels:['Concluídas','Em andamento','Atrasadas','Não iniciadas'],
-      datasets:[{ data:[18,1,6,69], backgroundColor:['#15803D','#1D4ED8','#B91C1C','#CBD5E1'], borderWidth:3, borderColor:'#FFFFFF', hoverOffset:5 }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false, cutout:'65%',
-      plugins:{
-        legend:{ display:false },
-        tooltip:{
-          backgroundColor:'#1B2F4E', titleColor:'#94A3B8', bodyColor:'#E2E8F0',
-          padding:10, cornerRadius:8,
-          callbacks:{ label: c => ' '+c.label+': '+c.parsed+' tarefas ('+Math.round(c.parsed/94*100)+'%)' }
-        }
-      }
-    }
-  });
 
   // ═══════════════════════════════════════════════
-  // INTEGRAÇÃO GOOGLE SHEETS — atualiza ao carregar
+  // INTEGRAÇÃO GOOGLE SHEETS
   // ═══════════════════════════════════════════════
   const SHEET = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNqc8Irh9EOD1_MmqM_lhODa9ipsRtrXYL_-Osy5v1WhJYeK_vl6eF-XRX-RIr8A/pub?output=csv';
-
   function csvUrl(gid){ return gid!==undefined ? SHEET+'&gid='+gid : SHEET; }
 
   function parseCSV(text){
@@ -1120,9 +1023,28 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     $t('info-banner',  'Projeto com desvio de '+(dev>=0?'+':'')+fmt(dev)+' p.p. '+(dev<0?'abaixo':'acima')+' do previsto');
     $t('dl-concluidas',nConc); $t('dl-andamento',nAnd);
     $t('dl-atrasadas', nAt);   $t('dl-ainiciar', nNI);
-    if(window._donutChart){
-      window._donutChart.data.datasets[0].data = [nConc, nAnd, nAt, nNI];
-      window._donutChart.update();
+    const donutCanvas = document.getElementById('donut');
+    const existingDonut = donutCanvas ? Chart.getChart(donutCanvas) : null;
+    if(existingDonut){
+      existingDonut.data.datasets[0].data=[nConc,nAnd,nAt,nNI];
+      existingDonut.update('none');
+    } else if(donutCanvas){
+      new Chart(donutCanvas,{
+        type:'doughnut',
+        data:{
+          labels:['Concluídas','Em andamento','Atrasadas','Não iniciadas'],
+          datasets:[{ data:[nConc,nAnd,nAt,nNI], backgroundColor:['#15803D','#1D4ED8','#B91C1C','#CBD5E1'], borderWidth:3, borderColor:'#FFFFFF', hoverOffset:5 }]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false, cutout:'65%', animation:false,
+          plugins:{
+            legend:{display:false},
+            tooltip:{ backgroundColor:'#1B2F4E', titleColor:'#94A3B8', bodyColor:'#E2E8F0', padding:10, cornerRadius:8,
+              callbacks:{ label: c=>' '+c.label+': '+c.parsed+' tarefas ('+Math.round(c.parsed/(nConc+nAnd+nAt+nNI)*100)+'%)' }
+            }
+          }
+        }
+      });
     }
   }
 
@@ -1217,15 +1139,39 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     $t('cs-termino', termino);
 
     const canvas=document.getElementById('curvaS');
-    const chart=canvas?Chart.getChart(canvas):null;
-    if(chart){
-      chart.data.labels=labels;
-      chart.data.datasets[0].data=prev;
-      chart.data.datasets[1].data=real;
-      chart.data.datasets[0].backgroundColor='transparent';
-      chart.update('none'); // 'none' = sem animação, evita artefatos
-      console.log('CurvaS ✓', labels.length, 'pontos');
+    const existing=canvas?Chart.getChart(canvas):null;
+    if(existing){
+      existing.data.labels=labels;
+      existing.data.datasets[0].data=prev;
+      existing.data.datasets[1].data=real;
+      existing.update('none');
+    } else if(canvas) {
+      new Chart(canvas,{
+        type:'line',
+        data:{
+          labels,
+          datasets:[
+            { label:'Previsto Acumulado', data:prev, borderColor:'#2563EB', backgroundColor:'transparent', borderWidth:2.5, pointRadius:0, pointHoverRadius:5, fill:false, tension:0.35, spanGaps:true, order:2 },
+            { label:'Realizado Acumulado', data:real, borderColor:'#E8900A', backgroundColor:'rgba(16,185,129,0.13)', borderWidth:2.5, pointRadius:0, pointHoverRadius:6, fill:'origin', tension:0.35, spanGaps:false, order:1 }
+          ]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false, animation:false,
+          interaction:{ mode:'index', intersect:false },
+          plugins:{
+            legend:{ display:false },
+            tooltip:{ backgroundColor:'#1B2F4E', titleColor:'#94A3B8', bodyColor:'#E2E8F0', padding:12, cornerRadius:8,
+              callbacks:{ label: c=>' '+c.dataset.label+': '+(c.parsed.y!=null?c.parsed.y.toFixed(2)+'%':'—') }
+            }
+          },
+          scales:{
+            x:{ ticks:{ color:'#8FA0B4', font:{size:11}, maxRotation:0, autoSkip:false, callback:function(v,i){ return i%2===0?this.getLabelForValue(v):''; } }, grid:{color:'rgba(0,0,0,0.05)'} },
+            y:{ min:0, max:105, title:{display:true,text:'% Acumulado',color:'#8FA0B4',font:{size:11},padding:{bottom:8}}, ticks:{color:'#8FA0B4',font:{size:11},callback:v=>v+'%',stepSize:10}, grid:{color:'rgba(0,0,0,0.06)'} }
+          }
+        }
+      });
     }
+    console.log('CurvaS ✓', labels.length, 'pontos');
   }
 
   function applyAtrasadas(rows){
@@ -1335,10 +1281,8 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     up('2.1.4','bp-214','br-214','pp-214','pr-214','dev-214');
   }
 
-    // Salva referências globais e dispara após charts estarem prontos
-    window._curvaChart = Chart.getChart(document.getElementById('curvaS'));
-    window._donutChart = Chart.getChart(document.getElementById('donut'));
-    setTimeout(refresh, 100);
+  // Dispara fetch imediatamente — charts são criados dentro das funções apply
+  refresh();
 
 })();
 </script>
