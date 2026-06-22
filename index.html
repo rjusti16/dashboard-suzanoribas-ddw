@@ -1394,18 +1394,42 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     if(efChart){ efChart.destroy(); efChart=null; }
     const ctx = document.getElementById('efeitoCanvas').getContext('2d');
 
-    // Plugin: total acima de cada barra
+    // Plugin: total acima + valores brancos dentro das barras
     const topPlugin = {
       id:'efTotals',
       afterDatasetsDraw(chart){
         const {ctx} = chart;
         ctx.save();
+
+        // Total acima (escuro)
         ctx.font = 'bold 11px Inter,sans-serif';
         ctx.fillStyle = '#1B2F4E';
         ctx.textAlign = 'center';
         chart.getDatasetMeta(1).data.forEach((bar,i)=>{
           if(totais[i]>0) ctx.fillText(totais[i], bar.x, bar.y-5);
         });
+
+        // Valor branco dentro da barra Indireta (dataset 0 = vermelho)
+        ctx.font = 'bold 11px Inter,sans-serif';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'center';
+        chart.getDatasetMeta(0).data.forEach((bar,i)=>{
+          const v = indirData[i];
+          if(v > 0){
+            const barH = bar.height || 0;
+            if(barH > 14) ctx.fillText(v, bar.x, bar.y + barH/2 + 4);
+          }
+        });
+
+        // Valor branco dentro da barra Direta (dataset 1 = azul)
+        chart.getDatasetMeta(1).data.forEach((bar,i)=>{
+          const v = diretaData[i];
+          if(v > 0){
+            const barH = bar.height || 0;
+            if(barH > 14) ctx.fillText(v, bar.x, bar.y + barH/2 + 4);
+          }
+        });
+
         ctx.restore();
       }
     };
