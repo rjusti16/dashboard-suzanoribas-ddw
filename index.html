@@ -557,8 +557,8 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     <div style="background:var(--white);border-radius:var(--r);padding:1.75rem 2rem;box-shadow:var(--sh);display:flex;flex-direction:column;">
       <div style="font-size:15px;font-weight:600;color:var(--t1);padding-bottom:0.75rem;border-bottom:1px solid var(--border);margin-bottom:1.25rem;flex-shrink:0;">Distribuição por status (qtd.)</div>
       <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;">
-        <div style="position:relative;width:150px;height:150px;flex-shrink:0;">
-          <canvas id="donut" role="img" aria-label="18 concluídas, 1 em andamento, 6 atrasadas, 69 não iniciadas.">Status das 94 tarefas.</canvas>
+        <div id="donut-wrap" style="position:relative;width:150px;height:150px;flex-shrink:0;visibility:hidden;">
+          <canvas id="donut" role="img" aria-label="Status das tarefas.">Status das tarefas.</canvas>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;width:100%;margin-top:16px;">
           <div style="display:flex;align-items:center;gap:8px;">
@@ -763,8 +763,8 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
         </div>
       </div>
 
-      <div class="chart-wrap">
-        <canvas id="curvaS" role="img" aria-label="Curva S: previsto acumulado (azul), realizado acumulado (laranja) e tendência (verde tracejado). Em 19/06 previsto 23,69%, realizado 22,83%.">Curva S: previsto 23,69%, realizado 22,83% em 19/06/2026.</canvas>
+      <div class="chart-wrap" id="curvaS-wrap" style="visibility:hidden;">
+        <canvas id="curvaS" role="img" aria-label="Curva S: previsto acumulado (azul), realizado acumulado (laranja).">Curva S DDW.</canvas>
       </div>
 
       <!-- Eixo X label -->
@@ -1046,6 +1046,8 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
         }
       });
     }
+    const dw = document.getElementById('donut-wrap');
+    if(dw) dw.style.visibility = 'visible';
   }
 
   function applyCurvaS(rows){
@@ -1171,6 +1173,8 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
         }
       });
     }
+    const wrap = document.getElementById('curvaS-wrap');
+    if(wrap) wrap.style.visibility = 'visible';
     console.log('CurvaS ✓', labels.length, 'pontos');
   }
 
