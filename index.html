@@ -1088,19 +1088,47 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   function $t(id,v){ const e=document.getElementById(id); if(e)e.textContent=v; }
   function $w(id,p){ const e=document.getElementById(id); if(e)e.style.width=Math.min(Math.max(p,0),100)+'%'; }
 
+  const SHEET_ID_CRONO = '1Vvnt4OHhJu4_9yTSLjUFjrk6eg7v19n_';
+
+  async function fetchCrono(){
+    const urls = [
+      `https://docs.google.com/spreadsheets/d/${SHEET_ID_CRONO}/gviz/tq?tqx=out:csv&sheet=Cronograma%20Atual`,
+      `https://docs.google.com/spreadsheets/d/${SHEET_ID_CRONO}/gviz/tq?tqx=out:csv&sheet=Cronograma`,
+      `https://docs.google.com/spreadsheets/d/${SHEET_ID_CRONO}/gviz/tq?tqx=out:csv&gid=1862791670`,
+    ];
+    for(const url of urls){
+      try{
+        const resp = await fetch(url);
+        if(!resp.ok) continue;
+        const csv = await resp.text();
+        const rows = parseCSV(csv);
+        // Valida: deve ter coluna EDT
+        const h = (rows[0]||[]).join('|').toUpperCase();
+        if(h.includes('EDT')||h.includes('NOME')||h.includes('TAREFA')){
+          console.log('Cronograma OK — linhas:', rows.length, '| url:', url.slice(-50));
+          return rows;
+        }
+      }catch(e){ continue; }
+    }
+    console.warn('Cronograma não encontrado');
+    return null;
+  }
+
   async function refresh(){
     try{
-      // Busca abas em paralelo (gid descobertos da planilha publicada)
-      const [gRel, gCurva, gCrono] = await Promise.all([
-        fetch(csvUrl()).then(r=>r.text()),          // primeira aba = Relatório Gerencial
-        fetch(csvUrl(1217384666)).then(r=>r.text()), // Curva S
-        fetch(csvUrl(1862791670)).then(r=>r.text()), // Cronograma Atual
+      // Busca Relatório Gerencial e Curva S da planilha publicada
+      const [gRel, gCurva] = await Promise.all([
+        fetch(csvUrl()).then(r=>r.text()),
+        fetch(csvUrl(1217384666)).then(r=>r.text()),
       ]);
 
       applyRelatorio(parseCSV(gRel));
       applyAtrasadas(parseCSV(gRel));
       applyCurvaS(parseCSV(gCurva));
-      applyCronograma(parseCSV(gCrono));
+
+      // Busca Cronograma Atual da planilha de controle
+      const cronRows = await fetchCrono();
+      if(cronRows) applyCronograma(cronRows);
 
       const ts = new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
       $t('last-update','Atualizado: '+ts);
@@ -1216,13 +1244,34 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   function applyCronograma(rows){
-    const h=rows[0]||[];
-    const eC=h.findIndex(c=>/^EDT$/i.test(c));
-    const pC=h.findIndex(c=>/Prev.*Fís/i.test(c));
-    const rC=h.findIndex(c=>/Concl.*Fís/i.test(c));
-    if(eC<0) return;
+    // Detecta cabeçalho — pode estar na linha 0 ou 1
+    let hIdx = 0;
+    if(!(rows[0]||[]).join('|').toUpperCase().includes('EDT')){
+      hIdx = rows.findIndex(r => r.join('|').toUpperCase().includes('EDT'));
+    }
+    if(hIdx < 0){ console.warn('Cronograma: cabeçalho EDT não encontrado'); return; }
+
+    const h  = rows[hIdx];
+    const eC = h.findIndex(c=>/^EDT$/i.test(c.trim()));
+    const pC = h.findIndex(c=>/Prev.*F[ií]s|F[ií]s.*Prev/i.test(c));
+    const rC = h.findIndex(c=>/(Concl|Real).*F[ií]s|F[ií]s.*(Concl|Real)/i.test(c));
+
+    console.log('Cronograma header idx:', hIdx, '| EDT col:', eC, '| Prev col:', pC, '| Real col:', rC);
+    if(eC<0){ console.warn('Coluna EDT não encontrada'); return; }
+
     const map={};
-    rows.slice(1).forEach(r=>{ const e=(r[eC]||'').trim(); if(e) map[e]=[n(r[pC]),n(r[rC])]; });
+    rows.slice(hIdx+1).forEach(r=>{
+      const e=(r[eC]||'').trim();
+      if(!e) return;
+      let p = n(r[pC]), re = n(r[rC]);
+      // Valores podem estar em decimal (0.41) ou percentual (41) — normaliza
+      if(p > 0 && p <= 1) p = p * 100;
+      if(re > 0 && re <= 1) re = re * 100;
+      map[e] = [p, re];
+    });
+
+    console.log('Cronograma map EDTs:', Object.keys(map).slice(0,10));
+
     const up=(edt,bpId,brId,ppId,prId,dId)=>{
       const d=map[edt]; if(!d) return;
       const [p,r]=d;
