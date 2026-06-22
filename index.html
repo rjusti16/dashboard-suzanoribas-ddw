@@ -891,9 +891,9 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
 
 <script>
 (function(){
-  const labels = ['10/06','11/06','12/06','13/06','14/06','15/06','16/06','17/06','18/06','19/06','20/06','21/06','22/06','23/06','24/06','25/06','26/06','27/06','28/06','29/06','30/06','01/07','02/07','03/07','04/07','05/07','06/07'];
-  const prev   = [0,.83,1.66,5.57,5.57,5.57,7.23,10.56,16.38,23.69,32.17,32.17,34.66,40.98,45.80,49.96,54.11,58.77,64.51,69.99,74.81,78.55,83.21,93.02,97.67,97.67,100];
-  const real   = [0,.83,1.66,5.57,5.57,5.57,7.23,10.56,16.38,22.83,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null];
+  const labels = [];
+  const prev   = [];
+  const real   = [];
 
   new Chart(document.getElementById('curvaS'),{
     type:'line',
@@ -1173,7 +1173,8 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       chart.data.labels=labels;
       chart.data.datasets[0].data=prev;
       chart.data.datasets[1].data=real;
-      chart.update();
+      chart.data.datasets[0].backgroundColor='transparent';
+      chart.update('none'); // 'none' = sem animação, evita artefatos
       console.log('CurvaS ✓', labels.length, 'pontos');
     }
   }
