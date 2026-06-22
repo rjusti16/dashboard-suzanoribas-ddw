@@ -452,7 +452,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     <div class="hdr-eyebrow">Projeto Cerrado &nbsp;·&nbsp; Linha de Fibras &nbsp;·&nbsp; Ribas do Rio Pardo, MS</div>
     <h1 class="hdr-title">Relatório Gerencial — Tubulação de Licor DDW</h1>
     <div class="hdr-scope">Tubulação DDW1 a DDW6 &nbsp;·&nbsp; Pré-Parada e Parada Geral &nbsp;·&nbsp; Fabricação e Montagem Eletromecânica</div>
-    <div class="hdr-date"><strong>Data de Corte: 19/06/2026</strong></div>
+    <div class="hdr-date"><strong>Data de Corte: <span id="data-corte">19/06/2026</span></strong></div>
   </div>
 
   <div class="hdr-right">
@@ -734,19 +734,19 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
         <div style="display:flex;gap:2rem;flex-wrap:wrap;">
           <div style="text-align:center;">
             <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--t3);margin-bottom:3px;">Previsto hoje</div>
-            <div style="font-size:18px;font-weight:700;color:var(--navy);">23,69%</div>
+            <div style="font-size:18px;font-weight:700;color:var(--navy);" id="cs-previsto">23,69%</div>
           </div>
           <div style="text-align:center;">
             <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--t3);margin-bottom:3px;">Realizado hoje</div>
-            <div style="font-size:18px;font-weight:700;color:#E8900A;">22,83%</div>
+            <div style="font-size:18px;font-weight:700;color:#E8900A;" id="cs-realizado">22,83%</div>
           </div>
           <div style="text-align:center;">
             <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--t3);margin-bottom:3px;">Desvio</div>
-            <div style="font-size:18px;font-weight:700;color:var(--red);">−0,86 p.p.</div>
+            <div id="cs-desvio" style="font-size:18px;font-weight:700;color:var(--red);">−0,86 p.p.</div>
           </div>
           <div style="text-align:center;">
             <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--t3);margin-bottom:3px;">Término previsto</div>
-            <div style="font-size:18px;font-weight:700;color:var(--navy);">06/07/2026</div>
+            <div id="cs-termino" style="font-size:18px;font-weight:700;color:var(--navy);">06/07/2026</div>
           </div>
         </div>
       </div>
@@ -1054,6 +1054,19 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   function applyRelatorio(rows){
+    // Linha 2 (idx 1): "Data do Relatório:" | "22/06/2026"
+    const dataRow = rows[1] || [];
+    const dataRelatorio = (dataRow[1]||dataRow[2]||'').trim();
+    if(dataRelatorio){
+      // Formata: pode vir como "22/06/2026" ou "6/22/2026" (M/D/YYYY do Sheets)
+      let dataFmt = dataRelatorio;
+      const m = dataRelatorio.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if(m){
+        // Google Sheets exporta M/D/YYYY → converter para DD/MM/YYYY
+        dataFmt = m[2].padStart(2,'0')+'/'+m[1].padStart(2,'0')+'/'+m[3];
+      }
+      $t('data-corte', dataFmt);
+    }
     let pG=0, rG=0, desvio=0, spiVal=0;
     let nConc=0, nAnd=0, nAt=0, nNI=0, nTot=0;
 
@@ -1172,6 +1185,27 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
 
     console.log('CurvaS — labels:', labels.length, '| prev[0]:', prev[0], '| real até', labels[last], '=', real[last]);
     if(!labels.length){ console.warn('CurvaS: sem labels'); return; }
+
+    // Atualiza cabeçalho com valores reais da planilha
+    const lastPrevIdx = prev.length - 1;
+    // Previsto hoje = último valor não-zero do previsto (data atual)
+    // Pega o valor do mesmo índice que o último real
+    const prevHoje = prev[last] || prev[lastPrevIdx];
+    const realHoje = real[last] || 0;
+    const desvio   = realHoje - prevHoje;
+
+    // Término previsto = label do último ponto do previsto
+    const terminoLabel = labels[lastPrevIdx];
+    // Converte dd/mm → dd/mm/2026
+    const termino = terminoLabel ? terminoLabel + '/2026' : '06/07/2026';
+
+    function fmtPct(v){ return v.toFixed(2).replace('.',',')+'%'; }
+    function fmtDev(v){ return (v>=0?'+':'')+v.toFixed(2).replace('.',',') + ' p.p.'; }
+
+    $t('cs-previsto', fmtPct(prevHoje));
+    $t('cs-realizado', fmtPct(realHoje));
+    $t('cs-desvio', fmtDev(desvio));
+    $t('cs-termino', termino);
 
     const canvas=document.getElementById('curvaS');
     const chart=canvas?Chart.getChart(canvas):null;
