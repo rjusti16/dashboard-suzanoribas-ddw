@@ -1177,14 +1177,17 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
 
     if(!labels.length){ console.warn('CurvaS: nenhum label gerado'); return; }
 
-    if(window._curvaChart){
-      window._curvaChart.data.labels = labels;
-      window._curvaChart.data.datasets[0].data = prev;
-      window._curvaChart.data.datasets[1].data = real;
-      window._curvaChart.update();
-      console.log('CurvaS: chart atualizado');
+    // Busca o chart diretamente pelo canvas em vez de usar referência global
+    const canvas = document.getElementById('curvaS');
+    const chart = canvas ? Chart.getChart(canvas) : window._curvaChart;
+    if(chart){
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = prev;
+      chart.data.datasets[1].data = real;
+      chart.update();
+      console.log('CurvaS: chart atualizado com', labels.length, 'pontos');
     } else {
-      console.warn('CurvaS: _curvaChart não encontrado');
+      console.warn('CurvaS: chart não encontrado no canvas #curvaS');
     }
   }
 
@@ -1295,10 +1298,10 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     up('2.1.4','bp-214','br-214','pp-214','pr-214','dev-214');
   }
 
-  // Salva referências globais e dispara
-  window._curvaChart = Chart.getChart('curvaS');
-  window._donutChart = Chart.getChart('donut');
-  refresh();
+    // Salva referências globais e dispara após charts estarem prontos
+    window._curvaChart = Chart.getChart(document.getElementById('curvaS'));
+    window._donutChart = Chart.getChart(document.getElementById('donut'));
+    setTimeout(refresh, 100);
 
 })();
 </script>
