@@ -1125,10 +1125,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       applyRelatorio(parseCSV(gRel));
       applyAtrasadas(parseCSV(gRel));
       applyCurvaS(parseCSV(gCurva));
-
-      // Busca Cronograma Atual da planilha de controle
-      const cronRows = await fetchCrono();
-      if(cronRows) applyCronograma(cronRows);
+      applyCronograma(parseCSV(gRel));  // EAP vem do Relatório Gerencial
 
       const ts = new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
       $t('last-update','Atualizado: '+ts);
@@ -1244,33 +1241,33 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   function applyCronograma(rows){
-    // Detecta cabeçalho — pode estar na linha 0 ou 1
-    let hIdx = 0;
-    if(!(rows[0]||[]).join('|').toUpperCase().includes('EDT')){
-      hIdx = rows.findIndex(r => r.join('|').toUpperCase().includes('EDT'));
-    }
-    if(hIdx < 0){ console.warn('Cronograma: cabeçalho EDT não encontrado'); return; }
+    // Dados EAP estão no Relatório Gerencial, linhas 27-32 (idx 26-31)
+    // Colunas: A=EDT, B=Disciplina, C=% Previsto, D=% Realizado
+    // Detecta a seção EAP procurando "AVANÇO POR DISCIPLINA" ou "EDT"
+    let eapStart = -1;
+    rows.forEach((r,i)=>{
+      const k = (r[0]||'').trim().toUpperCase();
+      if(k === 'EDT' || k.includes('EDT')) eapStart = i;
+    });
+    if(eapStart < 0) eapStart = 25; // fallback linha 26 (idx 25)
 
-    const h  = rows[hIdx];
-    const eC = h.findIndex(c=>/^EDT$/i.test(c.trim()));
-    const pC = h.findIndex(c=>/Prev.*F[ií]s|F[ií]s.*Prev/i.test(c));
-    const rC = h.findIndex(c=>/(Concl|Real).*F[ií]s|F[ií]s.*(Concl|Real)/i.test(c));
+    // Monta mapa EDT → [previsto, realizado]
+    const map = {};
+    rows.slice(eapStart+1).forEach(r => {
+      const edt = (r[0]||'').trim();
+      if(!edt || edt.toUpperCase().includes('DDW') || edt.toUpperCase().includes('PROG')) return;
+      // Para de ler após linha vazia ou nova seção
+      if(/^[A-ZÁÉÍÓÚÇ\s]+$/.test(edt) && edt.length > 10) return;
 
-    console.log('Cronograma header idx:', hIdx, '| EDT col:', eC, '| Prev col:', pC, '| Real col:', rC);
-    if(eC<0){ console.warn('Coluna EDT não encontrada'); return; }
-
-    const map={};
-    rows.slice(hIdx+1).forEach(r=>{
-      const e=(r[eC]||'').trim();
-      if(!e) return;
-      let p = n(r[pC]), re = n(r[rC]);
-      // Valores podem estar em decimal (0.41) ou percentual (41) — normaliza
-      if(p > 0 && p <= 1) p = p * 100;
-      if(re > 0 && re <= 1) re = re * 100;
-      map[e] = [p, re];
+      let p  = n((r[2]||'').replace('%',''));
+      let re = n((r[3]||'').replace('%',''));
+      // Normaliza se estiver em decimal
+      if(p > 0 && p <= 1)  p  *= 100;
+      if(re > 0 && re <= 1) re *= 100;
+      if(edt && (p > 0 || re > 0 || /^\d+\.\d+/.test(edt))) map[edt] = [p, re];
     });
 
-    console.log('Cronograma map EDTs:', Object.keys(map).slice(0,10));
+    console.log('EAP map:', map);
 
     const up=(edt,bpId,brId,ppId,prId,dId)=>{
       const d=map[edt]; if(!d) return;
