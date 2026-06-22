@@ -1106,55 +1106,54 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
 
   function applyCurvaS(rows){
     console.log('CurvaS total linhas:', rows.length);
+    if(rows.length < 42){ console.warn('CurvaS: menos de 42 linhas'); return; }
 
-    // Índices confirmados pela planilha:
-    // idx 37 = linha 38: meses (jun., jul...)
-    // idx 38 = linha 39: dias semana
-    // idx 39 = linha 40: dias do mês (10, 11, 12...)
-    // idx 41 = linha 42: PREV. ACUM. NO PERÍODO
-    // idx 43 = linha 44: REAL. ACUM. NO PERÍODO
+    // Índices confirmados:
+    const mesRow  = rows[37] || [];  // linha 38: jun. jun. ...
+    const diaRow  = rows[39] || [];  // linha 40: 10, 11, 12...
+    const prevRow = rows[41] || [];  // linha 42: PREV. ACUM. NO PERÍODO
+    const realRow = rows[43] || [];  // linha 44: REAL. ACUM. NO PERÍODO
 
-    const mesRow  = rows[37] || [];
-    const diaRow  = rows[39] || [];
-    const prevRow = rows[41] || [];
-    const realRow = rows[43] || [];
-
-    console.log('mesRow[1]:', mesRow[1], '| diaRow[1]:', diaRow[1]);
-    console.log('prevRow[0]:', prevRow[0], '| prevRow[1]:', prevRow[1]);
-    console.log('realRow[0]:', realRow[0], '| realRow[1]:', realRow[1]);
+    console.log('prevRow[0]:', prevRow[0], '| prevRow amostra:', prevRow.slice(1,6));
+    console.log('realRow[0]:', realRow[0], '| realRow amostra:', realRow.slice(1,6));
 
     const monthMap = {jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12',jan:'01',fev:'02',mar:'03',abr:'04',mai:'05'};
     const labels=[], prev=[], real=[];
 
+    // Dados começam na coluna B = índice 1
     for(let c=1; c<prevRow.length; c++){
-      const rawMes = (mesRow[c]||'').toLowerCase().trim().replace('.','').slice(0,3);
+      const rawMes = (mesRow[c]||'').toLowerCase().trim().replace(/\./g,'').slice(0,3);
       const rawDia = (diaRow[c]||'').trim().replace(/\D/g,'').padStart(2,'0');
       const mm = monthMap[rawMes];
       if(!mm || rawDia==='00') continue;
 
       labels.push(rawDia+'/'+mm);
 
-      const pStr = (prevRow[c]||'').trim().replace('%','').replace(',','.');
-      const pv = parseFloat(pStr)||0;
-      prev.push(pv>1 ? pv : pv*100);
+      // Percentual: "23,69%" → 23.69, ou "0,2369" → 23.69
+      function parsePct(s){
+        if(!s||!s.trim()) return 0;
+        const v = parseFloat(s.trim().replace('%','').replace(',','.'))||0;
+        return v > 1 ? v : v * 100;
+      }
+
+      prev.push(parsePct(prevRow[c]));
 
       const rStr = (realRow[c]||'').trim();
-      if(rStr && rStr!=='0' && rStr!==''){
-        const rv = parseFloat(rStr.replace('%','').replace(',','.'))||0;
-        real.push(rv>1 ? rv : rv*100);
+      if(rStr && rStr !== '0' && rStr !== '0,00%' && rStr !== '') {
+        real.push(parsePct(rStr));
       } else {
         real.push(null);
       }
     }
 
-    // Nulifica tudo após o último valor real
-    let last=-1;
-    real.forEach((v,i)=>{ if(v!==null && v>0) last=i; });
-    for(let i=last+1; i<real.length; i++) real[i]=null;
+    // Nulifica após último real > 0
+    let last = -1;
+    real.forEach((v,i) => { if(v !== null && v > 0) last = i; });
+    for(let i = last+1; i < real.length; i++) real[i] = null;
 
-    console.log('CurvaS processada — labels:', labels.length, '| prev[0]:', prev[0], '| last real idx:', last, 'val:', real[last]);
+    console.log('CurvaS — labels:', labels.length, '| prev sample:', prev.slice(0,4), '| real até idx', last, '=', real[last]);
 
-    if(!labels.length){ console.warn('CurvaS: sem labels'); return; }
+    if(!labels.length){ console.warn('CurvaS: sem dados'); return; }
 
     const canvas = document.getElementById('curvaS');
     const chart = canvas ? Chart.getChart(canvas) : null;
@@ -1163,9 +1162,9 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       chart.data.datasets[0].data = prev;
       chart.data.datasets[1].data = real;
       chart.update();
-      console.log('CurvaS ✓ atualizado com', labels.length, 'pontos');
+      console.log('CurvaS ✓ chart atualizado —', labels.length, 'pontos, realizado até', labels[last]);
     } else {
-      console.warn('CurvaS: canvas #curvaS não encontrado');
+      console.warn('CurvaS: chart não encontrado no #curvaS');
     }
   }
 
