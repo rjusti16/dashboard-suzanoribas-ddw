@@ -1109,80 +1109,82 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   function applyCurvaS(rows){
-    // Estrutura real da planilha Curva S:
-    // Linha 38 (idx 37): meses (jun., jun., ...)
-    // Linha 39 (idx 38): dias da semana (qua., qui., ...)
-    // Linha 40 (idx 39): dias do mês (10, 11, 12, ...)
-    // Linha 42 (idx 41): PREV. ACUM. NO PERÍODO
-    // Linha 44 (idx 43): REAL. ACUM. NO PERÍODO
+    // Estrutura confirmada da planilha:
+    // idx 37 = linha 38: meses (jun., jul...)
+    // idx 38 = linha 39: dias semana (qua., qui...)
+    // idx 39 = linha 40: dias do mês (10, 11, 12...)
+    // idx 41 = linha 42: PREV. ACUM. NO PERÍODO
+    // idx 43 = linha 44: REAL. ACUM. NO PERÍODO
 
-    let pRow=-1, rRow=-1, mesRowIdx=-1, diaRowIdx=-1;
-
+    let pRow=-1, rRow=-1;
     rows.forEach((r,i)=>{
-      const k=(r[0]||'').toUpperCase().trim();
-      if(k.includes('PREV')&&k.includes('ACUM')) pRow=i;
-      if(k.includes('REAL')&&k.includes('ACUM')) rRow=i;
+      const k=(r[0]||'').toUpperCase().trim().replace(/\s+/g,' ');
+      if(k==='PREV. ACUM. NO PERÍODO'||k==='PREV. ACUM. NO PERIODO'||(k.includes('PREV')&&k.includes('ACUM')&&k.includes('PERÍODO'))) pRow=i;
+      if(k==='REAL. ACUM. NO PERÍODO'||k==='REAL. ACUM. NO PERIODO'||(k.includes('REAL')&&k.includes('ACUM')&&k.includes('PERÍODO'))) rRow=i;
     });
 
-    if(pRow<0||rRow<0){
-      console.warn('CurvaS: linhas PREV/REAL ACUM não encontradas');
-      return;
-    }
+    // Fallback por posição fixa
+    if(pRow<0) pRow=41;
+    if(rRow<0) rRow=43;
 
-    // Linhas de mês e dia ficam 3-4 linhas antes do previsto
-    // Procura a linha de meses: contém "jun" ou "jan" na maioria das células
-    for(let i=Math.max(0,pRow-6); i<pRow; i++){
-      const vals = rows[i].slice(1).map(v=>(v||'').toLowerCase().trim());
-      const mesCount = vals.filter(v=>/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)/.test(v)).length;
-      if(mesCount >= 3){ mesRowIdx=i; break; }
-    }
-    // Linha de dia: logo após a linha de meses, contém números
-    if(mesRowIdx>=0){
-      for(let i=mesRowIdx+1; i<pRow; i++){
-        const vals = rows[i].slice(1).map(v=>(v||'').trim());
-        const numCount = vals.filter(v=>/^\d+$/.test(v)).length;
-        if(numCount >= 3){ diaRowIdx=i; break; }
-      }
-    }
+    console.log('CurvaS rows encontradas — pRow:', pRow, 'rRow:', rRow, '| total linhas:', rows.length);
+    console.log('pRow[0]:', rows[pRow]?.[0], '| rRow[0]:', rows[rRow]?.[0]);
+    console.log('pRow amostra:', rows[pRow]?.slice(1,8));
+    console.log('rRow amostra:', rows[rRow]?.slice(1,8));
 
-    console.log('CurvaS — pRow:', pRow, 'rRow:', rRow, 'mesRow:', mesRowIdx, 'diaRow:', diaRowIdx);
+    // Linhas de data
+    const mesRow = rows[pRow-4] || rows[37] || [];
+    const diaRow = rows[pRow-2] || rows[39] || [];
 
-    const mesRow = mesRowIdx>=0 ? rows[mesRowIdx] : [];
-    const diaRow = diaRowIdx>=0 ? rows[diaRowIdx] : [];
-    const monthMap={jan:'01',fev:'02',mar:'03',abr:'04',mai:'05',jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12'};
+    const monthMap={jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12',jan:'01',fev:'02',mar:'03',abr:'04',mai:'05'};
 
     const labels=[], prev=[], real=[];
-    for(let c=1; c<rows[pRow].length; c++){
-      const rawMes = (mesRow[c]||'').toLowerCase().trim().slice(0,3);
-      const rawDia = (diaRow[c]||'').trim().padStart(2,'0');
-      const mm = monthMap[rawMes] || '??';
-      if(mm==='??'&&rawDia==='00') continue; // pula colunas sem data
-      labels.push(rawDia+'/'+mm);
+    const pRowData = rows[pRow] || [];
+    const rRowData = rows[rRow] || [];
 
-      const pv = n(rows[pRow][c]);
+    for(let c=1; c<pRowData.length; c++){
+      const rawMes = (mesRow[c]||'').toLowerCase().trim().replace('.','').slice(0,3);
+      const rawDia = (diaRow[c]||'').trim().replace(/\D/g,'').padStart(2,'0');
+      const mm = monthMap[rawMes];
+
+      // Pula se não tem mês reconhecível
+      if(!mm) continue;
+
+      const label = rawDia+'/'+mm;
+      labels.push(label);
+
+      // Previsto: pode ser "23,69%" ou "0,2369" ou "23.69"
+      const pStr = (pRowData[c]||'').trim().replace('%','').replace(',','.');
+      const pv = parseFloat(pStr)||0;
       prev.push(pv>1 ? pv : pv*100);
 
-      const rv = (rows[rRow][c]||'').trim();
-      if(rv && rv!=='0' && rv!=='0,00%' && rv!=='0.00%'){
-        const rn = n(rv);
-        real.push(rn>1 ? rn : rn*100);
-      } else {
+      // Realizado: null se vazio ou zero
+      const rStr = (rRowData[c]||'').trim();
+      if(!rStr || rStr==='0' || rStr==='0,00%' || rStr==='0.00%' || rStr===''){
         real.push(null);
+      } else {
+        const rv = parseFloat(rStr.replace('%','').replace(',','.'))||0;
+        real.push(rv>1 ? rv : rv*100);
       }
     }
 
-    // Remove nulls do final do realizado
-    let lastReal = real.length-1;
-    while(lastReal>0 && real[lastReal]===null) lastReal--;
-    for(let i=lastReal+1; i<real.length; i++) real[i]=null;
+    // Garante que não há nulls no meio do realizado (só no final)
+    let lastNonNull = -1;
+    real.forEach((v,i)=>{ if(v!==null && v>0) lastNonNull=i; });
+    for(let i=lastNonNull+1; i<real.length; i++) real[i]=null;
 
-    console.log('CurvaS — labels:', labels.length, '| prev sample:', prev.slice(0,5), '| real sample:', real.slice(0,5));
+    console.log('CurvaS processada — labels:', labels.length, '| labels[0]:', labels[0], '| prev[0]:', prev[0], '| real lastNonNull idx:', lastNonNull);
+
+    if(!labels.length){ console.warn('CurvaS: nenhum label gerado'); return; }
 
     if(window._curvaChart){
-      window._curvaChart.data.labels=labels;
-      window._curvaChart.data.datasets[0].data=prev;
-      window._curvaChart.data.datasets[1].data=real;
+      window._curvaChart.data.labels = labels;
+      window._curvaChart.data.datasets[0].data = prev;
+      window._curvaChart.data.datasets[1].data = real;
       window._curvaChart.update();
+      console.log('CurvaS: chart atualizado');
+    } else {
+      console.warn('CurvaS: _curvaChart não encontrado');
     }
   }
 
