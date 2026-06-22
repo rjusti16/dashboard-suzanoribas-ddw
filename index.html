@@ -1141,8 +1141,14 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
 
     function parsePct(s){
       if(!s||!s.trim()) return 0;
-      const v = parseFloat(s.trim().replace('%','').replace(',','.'))||0;
-      return v>1 ? v : v*100;
+      const str = s.trim();
+      // Se tem sinal de %, já é percentual direto: "0,83%" → 0.83, "23,69%" → 23.69
+      if(str.includes('%')){
+        return parseFloat(str.replace('%','').replace(',','.'))||0;
+      }
+      // Sem %, pode ser decimal (0.2369) ou inteiro (23.69)
+      const v = parseFloat(str.replace(',','.'))||0;
+      return v > 1 ? v : v * 100;
     }
 
     for(let c=1; c<prevRow.length; c++){
