@@ -1106,65 +1106,75 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
 
   function applyCurvaS(rows){
     console.log('CurvaS total linhas:', rows.length);
-    if(rows.length < 42){ console.warn('CurvaS: menos de 42 linhas'); return; }
 
-    // Índices confirmados:
-    const mesRow  = rows[37] || [];  // linha 38: jun. jun. ...
-    const diaRow  = rows[39] || [];  // linha 40: 10, 11, 12...
-    const prevRow = rows[41] || [];  // linha 42: PREV. ACUM. NO PERÍODO
-    const realRow = rows[43] || [];  // linha 44: REAL. ACUM. NO PERÍODO
+    // Busca as linhas pelo conteúdo exato
+    let prevIdx=-1, realIdx=-1;
+    rows.forEach((r,i)=>{
+      const k=(r[0]||'').toUpperCase().trim().replace(/\s+/g,' ');
+      if(k==='PREV. ACUM. NO PERÍODO'||k==='PREV. ACUM. NO PERIODO'||
+         k==='PREV.ACUM. NO PERÍODO'||k==='PREV.ACUM.NO PERÍODO'||
+         (k.startsWith('PREV')&&k.includes('ACUM')&&k.includes('RIO'))) prevIdx=i;
+      if(k==='REAL. ACUM. NO PERÍODO'||k==='REAL. ACUM. NO PERIODO'||
+         k==='REAL.ACUM. NO PERÍODO'||k==='REAL.ACUM.NO PERÍODO'||
+         (k.startsWith('REAL')&&k.includes('ACUM')&&k.includes('RIO'))) realIdx=i;
+    });
 
-    console.log('prevRow[0]:', prevRow[0], '| prevRow amostra:', prevRow.slice(1,6));
-    console.log('realRow[0]:', realRow[0], '| realRow amostra:', realRow.slice(1,6));
+    console.log('prevIdx:', prevIdx, '| realIdx:', realIdx);
+    if(prevIdx<0||realIdx<0){
+      console.warn('CurvaS: PREV/REAL ACUM não encontrado');
+      return;
+    }
 
-    const monthMap = {jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12',jan:'01',fev:'02',mar:'03',abr:'04',mai:'05'};
+    // Linha de meses fica 4 linhas acima do previsto (prevIdx-4)
+    // Linha de dias fica 2 linhas acima do previsto (prevIdx-2)
+    const mesRow  = rows[prevIdx-4] || [];
+    const diaRow  = rows[prevIdx-2] || [];
+    const prevRow = rows[prevIdx]   || [];
+    const realRow = rows[realIdx]   || [];
+
+    console.log('mesRow[1]:', mesRow[1], '| diaRow[1]:', diaRow[1]);
+    console.log('prevRow amostra:', prevRow.slice(1,6));
+    console.log('realRow amostra:', realRow.slice(1,6));
+
+    const monthMap={jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12',jan:'01',fev:'02',mar:'03',abr:'04',mai:'05'};
     const labels=[], prev=[], real=[];
 
-    // Dados começam na coluna B = índice 1
+    function parsePct(s){
+      if(!s||!s.trim()) return 0;
+      const v = parseFloat(s.trim().replace('%','').replace(',','.'))||0;
+      return v>1 ? v : v*100;
+    }
+
     for(let c=1; c<prevRow.length; c++){
       const rawMes = (mesRow[c]||'').toLowerCase().trim().replace(/\./g,'').slice(0,3);
       const rawDia = (diaRow[c]||'').trim().replace(/\D/g,'').padStart(2,'0');
       const mm = monthMap[rawMes];
-      if(!mm || rawDia==='00') continue;
+      if(!mm||rawDia==='00') continue;
 
       labels.push(rawDia+'/'+mm);
-
-      // Percentual: "23,69%" → 23.69, ou "0,2369" → 23.69
-      function parsePct(s){
-        if(!s||!s.trim()) return 0;
-        const v = parseFloat(s.trim().replace('%','').replace(',','.'))||0;
-        return v > 1 ? v : v * 100;
-      }
-
       prev.push(parsePct(prevRow[c]));
 
-      const rStr = (realRow[c]||'').trim();
-      if(rStr && rStr !== '0' && rStr !== '0,00%' && rStr !== '') {
-        real.push(parsePct(rStr));
-      } else {
-        real.push(null);
-      }
+      const rStr=(realRow[c]||'').trim();
+      if(rStr&&rStr!=='0'&&rStr!=='') real.push(parsePct(rStr));
+      else real.push(null);
     }
 
     // Nulifica após último real > 0
-    let last = -1;
-    real.forEach((v,i) => { if(v !== null && v > 0) last = i; });
-    for(let i = last+1; i < real.length; i++) real[i] = null;
+    let last=-1;
+    real.forEach((v,i)=>{ if(v!==null&&v>0) last=i; });
+    for(let i=last+1; i<real.length; i++) real[i]=null;
 
-    console.log('CurvaS — labels:', labels.length, '| prev sample:', prev.slice(0,4), '| real até idx', last, '=', real[last]);
+    console.log('CurvaS — labels:', labels.length, '| prev[0]:', prev[0], '| real até', labels[last], '=', real[last]);
+    if(!labels.length){ console.warn('CurvaS: sem labels'); return; }
 
-    if(!labels.length){ console.warn('CurvaS: sem dados'); return; }
-
-    const canvas = document.getElementById('curvaS');
-    const chart = canvas ? Chart.getChart(canvas) : null;
+    const canvas=document.getElementById('curvaS');
+    const chart=canvas?Chart.getChart(canvas):null;
     if(chart){
-      chart.data.labels = labels;
-      chart.data.datasets[0].data = prev;
-      chart.data.datasets[1].data = real;
+      chart.data.labels=labels;
+      chart.data.datasets[0].data=prev;
+      chart.data.datasets[1].data=real;
       chart.update();
-      console.log('CurvaS ✓ chart atualizado —', labels.length, 'pontos, realizado até', labels[last]);
-    } else {
-      console.warn('CurvaS: chart não encontrado no #curvaS');
+      console.log('CurvaS ✓', labels.length, 'pontos');
     }
   }
 
