@@ -1109,20 +1109,75 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   function applyCurvaS(rows){
-    let pRow=-1,rRow=-1;
-    rows.forEach((r,i)=>{ const k=(r[0]||'').toUpperCase(); if(k.includes('PREV')&&k.includes('ACUM'))pRow=i; if(k.includes('REAL')&&k.includes('ACUM'))rRow=i; });
-    if(pRow<0||rRow<0) return;
-    const mesRow=rows[0]||[], diaRow=rows[1]||[];
-    const monthMap={jan:'01',fev:'02',mar:'03',abr:'04',mai:'05',jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12'};
-    const labels=[],prev=[],real=[];
-    for(let c=1;c<rows[pRow].length;c++){
-      const m=(mesRow[c]||'').toLowerCase().trim().slice(0,3);
-      const d=(diaRow[c]||'').trim().padStart(2,'0');
-      labels.push(d+'/'+(monthMap[m]||'??'));
-      prev.push(n(rows[pRow][c])*100);
-      const rv=rows[rRow][c];
-      real.push(rv&&rv.trim()&&rv.trim()!=='0'?n(rv)*100:null);
+    // Estrutura real da planilha Curva S:
+    // Linha 38 (idx 37): meses (jun., jun., ...)
+    // Linha 39 (idx 38): dias da semana (qua., qui., ...)
+    // Linha 40 (idx 39): dias do mês (10, 11, 12, ...)
+    // Linha 42 (idx 41): PREV. ACUM. NO PERÍODO
+    // Linha 44 (idx 43): REAL. ACUM. NO PERÍODO
+
+    let pRow=-1, rRow=-1, mesRowIdx=-1, diaRowIdx=-1;
+
+    rows.forEach((r,i)=>{
+      const k=(r[0]||'').toUpperCase().trim();
+      if(k.includes('PREV')&&k.includes('ACUM')) pRow=i;
+      if(k.includes('REAL')&&k.includes('ACUM')) rRow=i;
+    });
+
+    if(pRow<0||rRow<0){
+      console.warn('CurvaS: linhas PREV/REAL ACUM não encontradas');
+      return;
     }
+
+    // Linhas de mês e dia ficam 3-4 linhas antes do previsto
+    // Procura a linha de meses: contém "jun" ou "jan" na maioria das células
+    for(let i=Math.max(0,pRow-6); i<pRow; i++){
+      const vals = rows[i].slice(1).map(v=>(v||'').toLowerCase().trim());
+      const mesCount = vals.filter(v=>/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)/.test(v)).length;
+      if(mesCount >= 3){ mesRowIdx=i; break; }
+    }
+    // Linha de dia: logo após a linha de meses, contém números
+    if(mesRowIdx>=0){
+      for(let i=mesRowIdx+1; i<pRow; i++){
+        const vals = rows[i].slice(1).map(v=>(v||'').trim());
+        const numCount = vals.filter(v=>/^\d+$/.test(v)).length;
+        if(numCount >= 3){ diaRowIdx=i; break; }
+      }
+    }
+
+    console.log('CurvaS — pRow:', pRow, 'rRow:', rRow, 'mesRow:', mesRowIdx, 'diaRow:', diaRowIdx);
+
+    const mesRow = mesRowIdx>=0 ? rows[mesRowIdx] : [];
+    const diaRow = diaRowIdx>=0 ? rows[diaRowIdx] : [];
+    const monthMap={jan:'01',fev:'02',mar:'03',abr:'04',mai:'05',jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12'};
+
+    const labels=[], prev=[], real=[];
+    for(let c=1; c<rows[pRow].length; c++){
+      const rawMes = (mesRow[c]||'').toLowerCase().trim().slice(0,3);
+      const rawDia = (diaRow[c]||'').trim().padStart(2,'0');
+      const mm = monthMap[rawMes] || '??';
+      if(mm==='??'&&rawDia==='00') continue; // pula colunas sem data
+      labels.push(rawDia+'/'+mm);
+
+      const pv = n(rows[pRow][c]);
+      prev.push(pv>1 ? pv : pv*100);
+
+      const rv = (rows[rRow][c]||'').trim();
+      if(rv && rv!=='0' && rv!=='0,00%' && rv!=='0.00%'){
+        const rn = n(rv);
+        real.push(rn>1 ? rn : rn*100);
+      } else {
+        real.push(null);
+      }
+    }
+
+    // Remove nulls do final do realizado
+    let lastReal = real.length-1;
+    while(lastReal>0 && real[lastReal]===null) lastReal--;
+    for(let i=lastReal+1; i<real.length; i++) real[i]=null;
+
+    console.log('CurvaS — labels:', labels.length, '| prev sample:', prev.slice(0,5), '| real sample:', real.slice(0,5));
+
     if(window._curvaChart){
       window._curvaChart.data.labels=labels;
       window._curvaChart.data.datasets[0].data=prev;
