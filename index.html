@@ -1062,8 +1062,17 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       let dataFmt = dataRelatorio;
       const m = dataRelatorio.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
       if(m){
-        // Google Sheets exporta M/D/YYYY → converter para DD/MM/YYYY
-        dataFmt = m[2].padStart(2,'0')+'/'+m[1].padStart(2,'0')+'/'+m[3];
+        const p1 = parseInt(m[1]), p2 = parseInt(m[2]);
+        // Se p1 > 12, certamente é DD/MM/YYYY (dia no primeiro campo)
+        // Se p2 > 12, certamente é M/D/YYYY (mês no primeiro campo)
+        // Se ambos ≤ 12, assume M/D/YYYY (padrão Google Sheets)
+        if(p1 > 12){
+          // DD/MM/YYYY → já está correto
+          dataFmt = m[1].padStart(2,'0')+'/'+m[2].padStart(2,'0')+'/'+m[3];
+        } else {
+          // M/D/YYYY → inverte
+          dataFmt = m[2].padStart(2,'0')+'/'+m[1].padStart(2,'0')+'/'+m[3];
+        }
       }
       $t('data-corte', dataFmt);
     }
