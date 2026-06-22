@@ -1013,48 +1013,44 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   function $t(id,v){ const e=document.getElementById(id); if(e)e.textContent=v; }
   function $w(id,p){ const e=document.getElementById(id); if(e)e.style.width=Math.min(Math.max(p,0),100)+'%'; }
 
-  const SHEET_ID_CRONO = '1Vvnt4OHhJu4_9yTSLjUFjrk6eg7v19n_';
+  // Nova planilha dedicada da Curva S
+  const CURVAS_ID = '2PACX-1vRrDOakKATEEV1eYgN3Eer1UwX-LkyccFHZddXBZawJWTQr7JBqmgw1hx86X-uSKg';
 
-  async function fetchCrono(){
+  async function fetchCurvaS(){
     const urls = [
-      `https://docs.google.com/spreadsheets/d/${SHEET_ID_CRONO}/gviz/tq?tqx=out:csv&sheet=Cronograma%20Atual`,
-      `https://docs.google.com/spreadsheets/d/${SHEET_ID_CRONO}/gviz/tq?tqx=out:csv&sheet=Cronograma`,
-      `https://docs.google.com/spreadsheets/d/${SHEET_ID_CRONO}/gviz/tq?tqx=out:csv&gid=1862791670`,
+      `https://docs.google.com/spreadsheets/d/e/${CURVAS_ID}/pub?gid=605531262&single=true&output=csv`,
+      `https://docs.google.com/spreadsheets/d/e/${CURVAS_ID}/pub?output=csv&gid=605531262`,
+      `https://docs.google.com/spreadsheets/d/e/${CURVAS_ID}/pub?output=csv`,
     ];
     for(const url of urls){
       try{
         const resp = await fetch(url);
-        if(!resp.ok) continue;
+        if(!resp.ok){ console.warn('CurvaS status:', resp.status); continue; }
         const csv = await resp.text();
         const rows = parseCSV(csv);
-        // Valida: deve ter coluna EDT
-        const h = (rows[0]||[]).join('|').toUpperCase();
-        if(h.includes('EDT')||h.includes('NOME')||h.includes('TAREFA')){
-          console.log('Cronograma OK — linhas:', rows.length, '| url:', url.slice(-50));
-          return rows;
-        }
-      }catch(e){ continue; }
+        console.log('CurvaS OK — linhas:', rows.length, '| row[0]:', (rows[0]||[]).slice(0,5));
+        if(rows.length > 2) return rows;
+      }catch(e){ console.warn('CurvaS erro:', e.message); }
     }
-    console.warn('Cronograma não encontrado');
     return null;
   }
 
   async function refresh(){
     try{
-      // Busca Relatório Gerencial e Curva S da planilha publicada
-      const [gRel, gCurva] = await Promise.all([
+      const [gRel, curvaRows] = await Promise.all([
         fetch(csvUrl()).then(r=>r.text()),
-        fetch(csvUrl(1217384666)).then(r=>r.text()),
+        fetchCurvaS(),
       ]);
 
-      applyRelatorio(parseCSV(gRel));
-      applyAtrasadas(parseCSV(gRel));
-      applyCurvaS(parseCSV(gCurva));
-      applyCronograma(parseCSV(gRel));  // EAP vem do Relatório Gerencial
+      const relRows = parseCSV(gRel);
+      applyRelatorio(relRows);
+      applyAtrasadas(relRows);
+      applyCronograma(relRows);
+      if(curvaRows) applyCurvaS(curvaRows);
 
       const ts = new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
       $t('last-update','Atualizado: '+ts);
-    }catch(e){ console.warn('Sheets offline, usando dados padrão.',e); }
+    }catch(e){ console.warn('Sheets offline:', e); }
   }
 
   function applyRelatorio(rows){
@@ -1109,85 +1105,80 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   function applyCurvaS(rows){
-    // Estrutura confirmada da planilha:
-    // idx 37 = linha 38: meses (jun., jul...)
-    // idx 38 = linha 39: dias semana (qua., qui...)
-    // idx 39 = linha 40: dias do mês (10, 11, 12...)
-    // idx 41 = linha 42: PREV. ACUM. NO PERÍODO
-    // idx 43 = linha 44: REAL. ACUM. NO PERÍODO
+    // Planilha dedicada Curva S — detecta estrutura automaticamente
+    // Pode ser: linha 1 = cabeçalho (Data, Previsto, Realizado)
+    //           ou estrutura com meses/dias como na planilha original
 
-    let pRow=-1, rRow=-1;
-    rows.forEach((r,i)=>{
-      const k=(r[0]||'').toUpperCase().trim().replace(/\s+/g,' ');
-      if(k==='PREV. ACUM. NO PERÍODO'||k==='PREV. ACUM. NO PERIODO'||(k.includes('PREV')&&k.includes('ACUM')&&k.includes('PERÍODO'))) pRow=i;
-      if(k==='REAL. ACUM. NO PERÍODO'||k==='REAL. ACUM. NO PERIODO'||(k.includes('REAL')&&k.includes('ACUM')&&k.includes('PERÍODO'))) rRow=i;
+    // Primeiro tenta estrutura simples: col A=data, col B=previsto, col C=realizado
+    let hIdx = rows.findIndex(r => {
+      const j = r.join('|').toUpperCase();
+      return (j.includes('DATA')||j.includes('DATE')) && (j.includes('PREV')||j.includes('PLAN'));
     });
 
-    // Fallback por posição fixa
-    if(pRow<0) pRow=41;
-    if(rRow<0) rRow=43;
-
-    console.log('CurvaS rows encontradas — pRow:', pRow, 'rRow:', rRow, '| total linhas:', rows.length);
-    console.log('pRow[0]:', rows[pRow]?.[0], '| rRow[0]:', rows[rRow]?.[0]);
-    console.log('pRow amostra:', rows[pRow]?.slice(1,8));
-    console.log('rRow amostra:', rows[rRow]?.slice(1,8));
-
-    // Linhas de data
-    const mesRow = rows[pRow-4] || rows[37] || [];
-    const diaRow = rows[pRow-2] || rows[39] || [];
-
-    const monthMap={jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12',jan:'01',fev:'02',mar:'03',abr:'04',mai:'05'};
-
     const labels=[], prev=[], real=[];
-    const pRowData = rows[pRow] || [];
-    const rRowData = rows[rRow] || [];
 
-    for(let c=1; c<pRowData.length; c++){
-      const rawMes = (mesRow[c]||'').toLowerCase().trim().replace('.','').slice(0,3);
-      const rawDia = (diaRow[c]||'').trim().replace(/\D/g,'').padStart(2,'0');
-      const mm = monthMap[rawMes];
+    if(hIdx >= 0){
+      // Estrutura simples com cabeçalho
+      const h = rows[hIdx];
+      const dC = h.findIndex(c=>/data|date/i.test(c));
+      const pC = h.findIndex(c=>/prev|plan/i.test(c));
+      const rC = h.findIndex(c=>/real|acum/i.test(c) && !/prev/i.test(c));
+      console.log('CurvaS simples — dC:', dC, 'pC:', pC, 'rC:', rC);
 
-      // Pula se não tem mês reconhecível
-      if(!mm) continue;
+      rows.slice(hIdx+1).forEach(r => {
+        const d = (r[dC]||'').trim(); if(!d) return;
+        labels.push(d);
+        const pv = parseFloat((r[pC]||'').replace('%','').replace(',','.'))||0;
+        prev.push(pv>1?pv:pv*100);
+        const rv = (r[rC]||'').trim();
+        if(rv && rv!=='0'){
+          const rn = parseFloat(rv.replace('%','').replace(',','.'))||0;
+          real.push(rn>1?rn:rn*100);
+        } else real.push(null);
+      });
+    } else {
+      // Estrutura com linhas de mês/dia (planilha original)
+      let pRow=-1, rRow=-1;
+      rows.forEach((r,i)=>{
+        const k=(r[0]||'').toUpperCase().trim();
+        if(k.includes('PREV')&&k.includes('ACUM')) pRow=i;
+        if(k.includes('REAL')&&k.includes('ACUM')) rRow=i;
+      });
+      if(pRow<0||rRow<0){ console.warn('CurvaS: estrutura não reconhecida'); return; }
 
-      const label = rawDia+'/'+mm;
-      labels.push(label);
+      // Linha de meses (3 linhas antes do previsto)
+      const mesRow = rows[pRow-4]||rows[pRow-3]||[];
+      const diaRow = rows[pRow-2]||rows[pRow-1]||[];
+      const monthMap={jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12',jan:'01',fev:'02',mar:'03',abr:'04',mai:'05'};
 
-      // Previsto: pode ser "23,69%" ou "0,2369" ou "23.69"
-      const pStr = (pRowData[c]||'').trim().replace('%','').replace(',','.');
-      const pv = parseFloat(pStr)||0;
-      prev.push(pv>1 ? pv : pv*100);
-
-      // Realizado: null se vazio ou zero
-      const rStr = (rRowData[c]||'').trim();
-      if(!rStr || rStr==='0' || rStr==='0,00%' || rStr==='0.00%' || rStr===''){
-        real.push(null);
-      } else {
-        const rv = parseFloat(rStr.replace('%','').replace(',','.'))||0;
-        real.push(rv>1 ? rv : rv*100);
+      for(let c=1; c<(rows[pRow]||[]).length; c++){
+        const mm = monthMap[(mesRow[c]||'').toLowerCase().trim().replace('.','').slice(0,3)];
+        const dd = (diaRow[c]||'').trim().replace(/\D/g,'').padStart(2,'0');
+        if(!mm) continue;
+        labels.push(dd+'/'+mm);
+        const pv = parseFloat((rows[pRow][c]||'').replace('%','').replace(',','.'))||0;
+        prev.push(pv>1?pv:pv*100);
+        const rv=(rows[rRow][c]||'').trim();
+        if(rv&&rv!=='0'){ const rn=parseFloat(rv.replace('%','').replace(',','.'))||0; real.push(rn>1?rn:rn*100); }
+        else real.push(null);
       }
     }
 
-    // Garante que não há nulls no meio do realizado (só no final)
-    let lastNonNull = -1;
-    real.forEach((v,i)=>{ if(v!==null && v>0) lastNonNull=i; });
-    for(let i=lastNonNull+1; i<real.length; i++) real[i]=null;
+    // Zera nulls após o último valor real
+    let last=-1; real.forEach((v,i)=>{if(v!==null&&v>0)last=i;});
+    for(let i=last+1;i<real.length;i++) real[i]=null;
 
-    console.log('CurvaS processada — labels:', labels.length, '| labels[0]:', labels[0], '| prev[0]:', prev[0], '| real lastNonNull idx:', lastNonNull);
+    console.log('CurvaS — labels:', labels.length, '| prev[0]:', prev[0], '| último real:', real[last]);
+    if(!labels.length) return;
 
-    if(!labels.length){ console.warn('CurvaS: nenhum label gerado'); return; }
-
-    // Busca o chart diretamente pelo canvas em vez de usar referência global
     const canvas = document.getElementById('curvaS');
-    const chart = canvas ? Chart.getChart(canvas) : window._curvaChart;
+    const chart = canvas ? Chart.getChart(canvas) : null;
     if(chart){
-      chart.data.labels = labels;
-      chart.data.datasets[0].data = prev;
-      chart.data.datasets[1].data = real;
+      chart.data.labels=labels;
+      chart.data.datasets[0].data=prev;
+      chart.data.datasets[1].data=real;
       chart.update();
-      console.log('CurvaS: chart atualizado com', labels.length, 'pontos');
-    } else {
-      console.warn('CurvaS: chart não encontrado no canvas #curvaS');
+      console.log('CurvaS: chart atualizado ✓');
     }
   }
 
