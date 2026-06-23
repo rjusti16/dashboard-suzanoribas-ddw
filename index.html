@@ -1233,46 +1233,41 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   function applyCronograma(rows){
-    // O CSV tem dois cabeçalhos com "EDT":
-    // 1. Linha ~26 (idx 25): seção EAP — col B = "Disciplina"
-    // 2. Linha ~35 (idx 34): seção Tarefas Atrasadas — col B = "Tarefa"
-    // Precisamos do PRIMEIRO que tem "Disciplina" na col B
+    // Referência confirmada: A27:F32
+    // Linha 27 = idx 26: 1.2.1 | Fabricação da Tubulação | % Previsto | (vazio) | % Realizado | Desvio
+    // Linha 32 = idx 31: 2.1.4 | Interligação...
+    // Col A(0)=EDT, C(2)=% Previsto, D(3)=? ou E(4)=% Realizado
 
-    let hIdx=-1;
-    rows.forEach((r,i)=>{
-      if((r[0]||'').trim().toUpperCase()==='EDT' &&
-         (r[1]||'').trim().toUpperCase().includes('DISC')){
-        if(hIdx<0) hIdx=i; // pega apenas o primeiro
-      }
-    });
+    // Lê as linhas 26-31 diretamente
+    const dataRows = rows.slice(26, 32);
+    console.log('EAP A27:F32 →', dataRows.map(r=>`[${r[0]}] p=${r[2]} r=${r[3]} r4=${r[4]}`));
 
-    // Fallback: idx 25
-    if(hIdx<0) hIdx=25;
-    console.log('EAP hIdx (com Disciplina):', hIdx, '| row:', JSON.stringify((rows[hIdx]||[]).slice(0,7)));
-
-    // Detecta colunas pelo cabeçalho
-    const h=rows[hIdx]||[];
+    // Detecta qual coluna tem % Realizado: pode ser col C(2), D(3) ou E(4)
+    // Usa a linha do cabeçalho (idx 25) se disponível
+    const h = rows[25]||[];
     let pC=2, rC=3;
     h.forEach((cell,ci)=>{
       const v=(cell||'').toUpperCase().trim();
       if(v.includes('PREV')&&!v.includes('REAL')) pC=ci;
       if((v.includes('REAL')||v.includes('CONCLU'))&&!v.includes('PREV')) rC=ci;
     });
-    console.log('EAP pC:', pC, h[pC], '| rC:', rC, h[rC]);
+    console.log('EAP cols — pC:', pC, h[pC]||'?', '| rC:', rC, h[rC]||'?');
 
     function pct(s){
       const v=parseFloat((s||'').replace('%','').replace(',','.'))||0;
       return v>0&&v<=1?v*100:v;
     }
 
+    const edts=['1.2.1','1.2.2','2.1.1','2.1.2','2.1.3','2.1.4'];
     const map={};
-    for(let i=hIdx+1;i<=hIdx+8&&i<rows.length;i++){
-      const r=rows[i]||[];
+    dataRows.forEach((r,i)=>{
       const edt=(r[0]||'').trim();
-      if(!edt||!/^\d/.test(edt)) continue;
-      map[edt]=[pct(r[pC]),pct(r[rC])];
-      console.log(`EDT ${edt}: prev=${map[edt][0]} real=${map[edt][1]}`);
-    }
+      const key = edts[i]; // usa posição garantida
+      if(!key) return;
+      const p=pct(r[pC]), re=pct(r[rC]);
+      map[key]=[p,re];
+      console.log(`${key}(${edt}): prev=${p} real=${re} | cols: "${r[2]}"/"${r[3]}"/"${r[4]}"`);
+    });
     console.log('EAP map:', JSON.stringify(map));
 
     const up=(edt,bpId,brId,ppId,prId,dId)=>{
