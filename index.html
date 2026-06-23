@@ -1233,36 +1233,32 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   function applyCronograma(rows){
-    // Seleção confirmada: A25:F32 da aba Relatório Gerencial
-    // Linha 25 (idx 24): título "AVANÇO POR DISCIPLINA — EAP"
-    // Linha 26 (idx 25): cabeçalho — EDT | Disciplina | % Previsto | (vazio) | % Realizado | Desvio | Status
-    // Linhas 27-32 (idx 26-31): dados EDT 1.2.1 até 2.1.4
-    // Col A(0)=EDT, B(1)=Disciplina, C(2)=% Previsto, D(3)=(vazio), E(4)=% Realizado, F(5)=Desvio
+    // O CSV tem dois cabeçalhos com "EDT":
+    // 1. Linha ~26 (idx 25): seção EAP — col B = "Disciplina"
+    // 2. Linha ~35 (idx 34): seção Tarefas Atrasadas — col B = "Tarefa"
+    // Precisamos do PRIMEIRO que tem "Disciplina" na col B
 
-    // Verifica se o idx 25 realmente tem EDT
-    let hIdx = 25;
-    // Busca segura: procura EDT entre idx 20-30
-    for(let i=20;i<=30&&i<rows.length;i++){
-      if((rows[i][0]||'').trim().toUpperCase()==='EDT'){ hIdx=i; break; }
-    }
+    let hIdx=-1;
+    rows.forEach((r,i)=>{
+      if((r[0]||'').trim().toUpperCase()==='EDT' &&
+         (r[1]||'').trim().toUpperCase().includes('DISC')){
+        if(hIdx<0) hIdx=i; // pega apenas o primeiro
+      }
+    });
 
-    // Log para verificação
-    console.log('EAP hIdx:', hIdx, '| row:', JSON.stringify((rows[hIdx]||[]).slice(0,7)));
-    for(let i=hIdx+1;i<=hIdx+7&&i<rows.length;i++){
-      console.log(`  [${i}]`, JSON.stringify((rows[i]||[]).slice(0,7)));
-    }
+    // Fallback: idx 25
+    if(hIdx<0) hIdx=25;
+    console.log('EAP hIdx (com Disciplina):', hIdx, '| row:', JSON.stringify((rows[hIdx]||[]).slice(0,7)));
 
-    // Colunas baseadas na estrutura A25:F32:
-    // C(idx 2) = % Previsto, E(idx 4) = % Realizado
-    // Confirma pelo cabeçalho
-    const h = rows[hIdx]||[];
-    let pC=2, rC=4;
+    // Detecta colunas pelo cabeçalho
+    const h=rows[hIdx]||[];
+    let pC=2, rC=3;
     h.forEach((cell,ci)=>{
       const v=(cell||'').toUpperCase().trim();
       if(v.includes('PREV')&&!v.includes('REAL')) pC=ci;
       if((v.includes('REAL')||v.includes('CONCLU'))&&!v.includes('PREV')) rC=ci;
     });
-    console.log('pC:', pC, h[pC]||'(sem label)', '| rC:', rC, h[rC]||'(sem label)');
+    console.log('EAP pC:', pC, h[pC], '| rC:', rC, h[rC]);
 
     function pct(s){
       const v=parseFloat((s||'').replace('%','').replace(',','.'))||0;
@@ -1270,13 +1266,12 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     }
 
     const map={};
-    for(let i=hIdx+1;i<=hIdx+7&&i<rows.length;i++){
+    for(let i=hIdx+1;i<=hIdx+8&&i<rows.length;i++){
       const r=rows[i]||[];
       const edt=(r[0]||'').trim();
       if(!edt||!/^\d/.test(edt)) continue;
-      const p=pct(r[pC]), re=pct(r[rC]);
-      map[edt]=[p,re];
-      console.log(`EDT ${edt}: prev=${p} real=${re} | raw:"${r[pC]}"/"${r[rC]}"`);
+      map[edt]=[pct(r[pC]),pct(r[rC])];
+      console.log(`EDT ${edt}: prev=${map[edt][0]} real=${map[edt][1]}`);
     }
     console.log('EAP map:', JSON.stringify(map));
 
