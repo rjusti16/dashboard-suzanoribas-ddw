@@ -1233,56 +1233,48 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   function applyCronograma(rows){
-    // Encontra linha de cabeçalho da seção EAP: linha com "EDT" na col A
-    let hIdx = -1;
-    rows.forEach((r,i)=>{
-      const a=(r[0]||'').trim().toUpperCase();
-      const b=(r[1]||'').trim().toUpperCase();
-      if(a==='EDT' && (b.includes('DISC')||b.includes('NOME')||b.includes('TAREFA')||b.includes('TAREA'))) hIdx=i;
-    });
-
-    // Fallback: procura linha 26 (idx 25) que é o cabeçalho EAP
-    if(hIdx<0){
-      for(let i=20;i<35;i++){
-        const r=rows[i]||[];
-        if((r[0]||'').trim().toUpperCase()==='EDT') { hIdx=i; break; }
-      }
+    console.log('=== EAP DEBUG ===');
+    
+    // Mostra linhas 24-35 para diagnóstico
+    for(let i=23; i<=35&&i<rows.length; i++){
+      console.log(`L${i+1}:`, JSON.stringify(rows[i]?.slice(0,5)));
     }
 
-    if(hIdx<0){ console.warn('EAP: cabeçalho não encontrado'); return; }
+    // Busca linha com EDT na col A
+    let hIdx = -1;
+    rows.forEach((r,i)=>{
+      if((r[0]||'').trim().toUpperCase()==='EDT') hIdx=i;
+    });
+    console.log('EDT idx:', hIdx, '| row:', JSON.stringify(rows[hIdx]?.slice(0,6)));
 
-    const h = rows[hIdx];
-    // Detecta índices das colunas pelo cabeçalho
+    if(hIdx<0){ console.warn('EDT não encontrado'); return; }
+
+    const h=rows[hIdx];
     let pC=-1, rC=-1;
     h.forEach((cell,ci)=>{
       const v=(cell||'').toUpperCase().trim();
       if(v.includes('PREV')&&pC<0) pC=ci;
       if((v.includes('REAL')||v.includes('CONCL'))&&!v.includes('PREV')&&rC<0) rC=ci;
     });
-
-    // Fallback: colunas C e D (idx 2 e 3)
-    if(pC<0) pC=2;
-    if(rC<0) rC=3;
-
-    console.log('EAP hIdx:', hIdx, '| pC:', pC, '('+h[pC]+') | rC:', rC, '('+h[rC]+')');
+    if(pC<0) pC=2; if(rC<0) rC=3;
+    console.log('Colunas — Prev:', pC, h[pC], '| Real:', rC, h[rC]);
 
     const map={};
-    for(let i=hIdx+1; i<rows.length; i++){
-      const r=rows[i];
+    // Lê até 10 linhas após o cabeçalho (não para em linha vazia)
+    for(let i=hIdx+1; i<Math.min(hIdx+12, rows.length); i++){
+      const r=rows[i]||[];
       const edt=(r[0]||'').trim();
-      if(!edt) break;
-      if(!/^\d/.test(edt)) continue; // só linhas EDT numéricas
+      console.log(`L${i+1} edt="${edt}" p="${r[pC]}" r="${r[rC]}"`);
+      if(!edt||!/^\d/.test(edt)) continue;
 
       const pStr=(r[pC]||'').trim().replace('%','').replace(',','.');
       const rStr=(r[rC]||'').trim().replace('%','').replace(',','.');
-      let p=parseFloat(pStr)||0;
-      let re=parseFloat(rStr)||0;
+      let p=parseFloat(pStr)||0, re=parseFloat(rStr)||0;
       if(p>0&&p<=1) p*=100;
       if(re>0&&re<=1) re*=100;
       map[edt]=[p,re];
     }
-
-    console.log('EAP map:', JSON.stringify(map));
+    console.log('EAP final map:', JSON.stringify(map));
 
     const up=(edt,bpId,brId,ppId,prId,dId)=>{
       const d=map[edt]; if(!d) return;
