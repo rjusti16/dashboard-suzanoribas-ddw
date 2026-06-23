@@ -1233,48 +1233,49 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   function applyCronograma(rows){
-    console.log('=== EAP DEBUG ===');
-    
-    // Mostra linhas 24-35 para diagnóstico
-    for(let i=23; i<=35&&i<rows.length; i++){
-      console.log(`L${i+1}:`, JSON.stringify(rows[i]?.slice(0,5)));
-    }
+    // Estrutura confirmada:
+    // Linha 26 (idx 25): cabeçalho — EDT | Disciplina | % Previsto | | % Realizado
+    // Linhas 27-32 (idx 26-31): dados EAP
+    // Col A (idx 0) = EDT, Col C (idx 2) = % Previsto, Col D (idx 3) = % Realizado
 
-    // Busca linha com EDT na col A
+    // Encontra linha de cabeçalho com EDT
     let hIdx = -1;
     rows.forEach((r,i)=>{
       if((r[0]||'').trim().toUpperCase()==='EDT') hIdx=i;
     });
-    console.log('EDT idx:', hIdx, '| row:', JSON.stringify(rows[hIdx]?.slice(0,6)));
+    if(hIdx<0) hIdx=25; // fallback idx 25
 
-    if(hIdx<0){ console.warn('EDT não encontrado'); return; }
+    // Com o cabeçalho encontrado, determina colunas de Previsto e Realizado
+    const h=rows[hIdx]||[];
+    let pC=2, rC=3; // defaults confirmados pela planilha
 
-    const h=rows[hIdx];
-    let pC=-1, rC=-1;
+    // Verifica se o cabeçalho tem rótulos explícitos
     h.forEach((cell,ci)=>{
       const v=(cell||'').toUpperCase().trim();
-      if(v.includes('PREV')&&pC<0) pC=ci;
-      if((v.includes('REAL')||v.includes('CONCL'))&&!v.includes('PREV')&&rC<0) rC=ci;
+      if(v.includes('PREV')&&v.includes('%')) pC=ci;
+      if(v.includes('REAL')&&v.includes('%')) rC=ci;
     });
-    if(pC<0) pC=2; if(rC<0) rC=3;
-    console.log('Colunas — Prev:', pC, h[pC], '| Real:', rC, h[rC]);
+
+    console.log('EAP hIdx:', hIdx, '| pC:', pC, h[pC], '| rC:', rC, h[rC]);
 
     const map={};
-    // Lê até 10 linhas após o cabeçalho (não para em linha vazia)
-    for(let i=hIdx+1; i<Math.min(hIdx+12, rows.length); i++){
+    // Lê as 8 linhas após o cabeçalho
+    for(let i=hIdx+1; i<=hIdx+8 && i<rows.length; i++){
       const r=rows[i]||[];
       const edt=(r[0]||'').trim();
-      console.log(`L${i+1} edt="${edt}" p="${r[pC]}" r="${r[rC]}"`);
       if(!edt||!/^\d/.test(edt)) continue;
 
-      const pStr=(r[pC]||'').trim().replace('%','').replace(',','.');
-      const rStr=(r[rC]||'').trim().replace('%','').replace(',','.');
-      let p=parseFloat(pStr)||0, re=parseFloat(rStr)||0;
-      if(p>0&&p<=1) p*=100;
-      if(re>0&&re<=1) re*=100;
-      map[edt]=[p,re];
+      // Percentual: pode ser "53%" ou "0,53" ou "53,00%"
+      function pct(s){
+        if(!s||!s.trim()) return 0;
+        const v=parseFloat((s+'').trim().replace('%','').replace(',','.'))||0;
+        // Se vier como decimal (0.53), converte para percentual
+        return (v>0&&v<=1) ? v*100 : v;
+      }
+
+      map[edt]=[pct(r[pC]), pct(r[rC])];
+      console.log(`EDT ${edt}: prev=${map[edt][0]} real=${map[edt][1]} | raw: "${r[pC]}" / "${r[rC]}"`);
     }
-    console.log('EAP final map:', JSON.stringify(map));
 
     const up=(edt,bpId,brId,ppId,prId,dId)=>{
       const d=map[edt]; if(!d) return;
