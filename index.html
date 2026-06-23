@@ -1233,50 +1233,50 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   function applyCronograma(rows){
-    // Busca linha EDT em todo o CSV
-    let hIdx=-1;
-    rows.forEach((r,i)=>{
-      if((r[0]||'').trim().toUpperCase()==='EDT') hIdx=i;
-    });
-    if(hIdx<0) hIdx=25;
+    // Seleção confirmada: A25:F32 da aba Relatório Gerencial
+    // Linha 25 (idx 24): título "AVANÇO POR DISCIPLINA — EAP"
+    // Linha 26 (idx 25): cabeçalho — EDT | Disciplina | % Previsto | (vazio) | % Realizado | Desvio | Status
+    // Linhas 27-32 (idx 26-31): dados EDT 1.2.1 até 2.1.4
+    // Col A(0)=EDT, B(1)=Disciplina, C(2)=% Previsto, D(3)=(vazio), E(4)=% Realizado, F(5)=Desvio
 
-    const h=rows[hIdx]||[];
-    console.log('EAP header['+hIdx+']:', JSON.stringify(h.slice(0,8)));
-
-    // Detecta colunas % Previsto e % Realizado pelo cabeçalho
-    let pC=-1, rC=-1;
-    h.forEach((cell,ci)=>{
-      const v=(cell||'').toUpperCase().replace(/\s+/g,' ').trim();
-      if(v.includes('PREV')&&pC<0) pC=ci;
-      if((v.includes('REAL')||v.includes('CONCL'))&&!v.includes('PREV')&&rC<0) rC=ci;
-    });
-
-    // Se não achou pelo cabeçalho, varre dados e usa posição dos valores numéricos
-    // nas linhas de dados para inferir as colunas
-    if(pC<0||rC<0){
-      // Lê linha 1.2.1 e encontra as colunas com valores numéricos
-      for(let i=hIdx+1;i<=hIdx+3&&i<rows.length;i++){
-        const r=rows[i]||[];
-        if(!/^\d/.test((r[0]||'').trim())) continue;
-        const numCols=[];
-        r.forEach((v,ci)=>{ if(ci>0&&/[\d,\.%]/.test((v||'').trim())&&(v||'').trim()!=='') numCols.push(ci); });
-        if(numCols.length>=2&&pC<0){ pC=numCols[0]; rC=numCols[1]; }
-        break;
-      }
+    // Verifica se o idx 25 realmente tem EDT
+    let hIdx = 25;
+    // Busca segura: procura EDT entre idx 20-30
+    for(let i=20;i<=30&&i<rows.length;i++){
+      if((rows[i][0]||'').trim().toUpperCase()==='EDT'){ hIdx=i; break; }
     }
 
-    if(pC<0) pC=2; if(rC<0) rC=3;
-    console.log('EAP cols — pC:', pC, '('+h[pC]+') rC:', rC, '('+h[rC]+')');
+    // Log para verificação
+    console.log('EAP hIdx:', hIdx, '| row:', JSON.stringify((rows[hIdx]||[]).slice(0,7)));
+    for(let i=hIdx+1;i<=hIdx+7&&i<rows.length;i++){
+      console.log(`  [${i}]`, JSON.stringify((rows[i]||[]).slice(0,7)));
+    }
+
+    // Colunas baseadas na estrutura A25:F32:
+    // C(idx 2) = % Previsto, E(idx 4) = % Realizado
+    // Confirma pelo cabeçalho
+    const h = rows[hIdx]||[];
+    let pC=2, rC=4;
+    h.forEach((cell,ci)=>{
+      const v=(cell||'').toUpperCase().trim();
+      if(v.includes('PREV')&&!v.includes('REAL')) pC=ci;
+      if((v.includes('REAL')||v.includes('CONCLU'))&&!v.includes('PREV')) rC=ci;
+    });
+    console.log('pC:', pC, h[pC]||'(sem label)', '| rC:', rC, h[rC]||'(sem label)');
+
+    function pct(s){
+      const v=parseFloat((s||'').replace('%','').replace(',','.'))||0;
+      return v>0&&v<=1?v*100:v;
+    }
 
     const map={};
-    for(let i=hIdx+1;i<=hIdx+8&&i<rows.length;i++){
+    for(let i=hIdx+1;i<=hIdx+7&&i<rows.length;i++){
       const r=rows[i]||[];
       const edt=(r[0]||'').trim();
       if(!edt||!/^\d/.test(edt)) continue;
-      const pv=(r[pC]||'').trim(), rv=(r[rC]||'').trim();
-      console.log(`EDT ${edt}: p="${pv}" r="${rv}"`);
-      function pct(s){ const v=parseFloat((s+'').replace('%','').replace(',','.'))||0; return v>0&&v<=1?v*100:v; }
-      map[edt]=[pct(pv),pct(rv)];
+      const p=pct(r[pC]), re=pct(r[rC]);
+      map[edt]=[p,re];
+      console.log(`EDT ${edt}: prev=${p} real=${re} | raw:"${r[pC]}"/"${r[rC]}"`);
     }
     console.log('EAP map:', JSON.stringify(map));
 
