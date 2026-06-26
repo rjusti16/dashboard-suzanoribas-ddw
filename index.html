@@ -536,14 +536,10 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border);padding-top:14px;margin-top:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border);padding-top:14px;margin-top:16px;">
           <div style="padding-right:16px;">
             <div style="font-size:10px;color:var(--t3);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Desvio</div>
             <div id="info-desvio" style="font-size:20px;font-weight:700;color:var(--red);">—</div>
-          </div>
-          <div style="padding:0 16px;border-left:1px solid var(--border);">
-            <div style="font-size:10px;color:var(--t3);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">SPI</div>
-            <div id="info-spi" style="font-size:20px;font-weight:700;color:var(--red);">—</div>
           </div>
           <div style="padding-left:16px;border-left:1px solid var(--border);">
             <div style="font-size:10px;color:var(--t3);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Término previsto</div>
@@ -851,7 +847,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       if(/% Previsto.*Fís|Prev.*Físico/i.test(k))  pG     = n(vC||vB);
       if(/% Realizado.*Fís|Real.*Físico/i.test(k)) rG     = n(vC||vB);
       if(/^Desvio\s*:/i.test(k))                   desvio = n(vC||vB);
-      if(/^SPI\s*:/i.test(k) && n(vB)!==0)         spiVal = n(vB);
+      if(/^SPI/i.test(k) && n(vB)!==0)               spiVal = parseFloat((vB||'').replace(',','.'))||0;
     });
 
     // Lê status das tarefas por posição de linha exata da planilha:
@@ -880,7 +876,13 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     $t('pct-realizado',fmt(rPct)+'%'); $w('bar-realizado',rPct);
     $t('pct-previsto', fmt(pPct)+'%'); $w('bar-previsto', pPct);
     $t('info-desvio',  (dev>=0?'+':'')+fmt(dev)+' p.p.');
-    $t('info-spi',     spiVal ? spiVal.toFixed(3) : '0,964');
+    // SPI: usa valor da planilha ou calcula (Realizado / Previsto)
+    const spiCalc = pPct > 0 ? (rPct / pPct) : 0;
+    const spiDisplay = spiVal > 0 ? spiVal : spiCalc;
+    const spiColor = spiDisplay >= 1 ? 'var(--green)' : spiDisplay >= 0.95 ? 'var(--amber)' : 'var(--red)';
+    $t('info-spi', spiDisplay.toFixed(3).replace('.', ','));
+    const spiEl = document.getElementById('info-spi');
+    if(spiEl) spiEl.style.color = spiColor;
     $t('info-banner',  'Projeto com desvio de '+(dev>=0?'+':'')+fmt(dev)+' p.p. '+(dev<0?'abaixo':'acima')+' do previsto');
     $t('dl-concluidas',nConc); $t('dl-andamento',nAnd);
     $t('dl-atrasadas', nAt);   $t('dl-ainiciar', nNI);
@@ -999,7 +1001,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     $t('cs-previsto', fmtPct(prevHoje));
     $t('cs-realizado', fmtPct(realHoje));
     $t('cs-desvio', fmtDev(desvio));
-    $t('cs-termino', termino);
+    $t('cs-termino', '06/07/2026');
 
     const canvas=document.getElementById('curvaS');
     const existing=canvas?Chart.getChart(canvas):null;
