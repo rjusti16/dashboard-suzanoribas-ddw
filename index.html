@@ -1194,20 +1194,26 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
     for(const url of urls){
       try{
         const resp = await fetch(url);
-        if(!resp.ok) continue;
+        if(!resp.ok){ console.warn('Efetivo HTTP:', resp.status, url.slice(-40)); continue; }
         const csv = await resp.text();
         const rows = parseCSV(csv);
-        // Verifica se é a aba certa: deve ter "DIRETA" e "INDIRETA" na col A
-        const colA = rows.map(r=>(r[0]||'').toUpperCase());
-        const hasDireta  = colA.some(k=>k.includes('DIRETA')&&k.includes('TOTAL')&&!k.includes('INDIRETA'));
-        const hasIndireta= colA.some(k=>k.includes('INDIRETA')&&k.includes('TOTAL'));
-        console.log('URL:', url.slice(-50), '| linhas:', rows.length, '| DIRETA Total:', hasDireta, '| INDIRETA Total:', hasIndireta);
-        if(hasDireta && hasIndireta){
-          buildEfetivo(rows); return;
-        }
-      }catch(e){ console.warn('Falhou:', url, e.message); }
+        // Verifica se é a aba certa: "DIRETA Total" pode estar na col A ou B
+        const colAB = rows.map(r=>((r[0]||'')+(r[1]||'')).toUpperCase());
+        const hasDireta   = colAB.some(k=>k.includes('DIRETA')&&k.includes('TOTAL')&&!k.includes('INDIRETA'));
+        const hasIndireta = colAB.some(k=>k.includes('INDIRETA')&&k.includes('TOTAL'));
+        console.log('Efetivo URL:', url.slice(-40), '| linhas:', rows.length, '| Direta:', hasDireta, '| Indireta:', hasIndireta);
+        if(hasDireta && hasIndireta){ buildEfetivo(rows); return; }
+      }catch(e){ console.warn('Efetivo erro:', e.message); }
     }
-    console.error('Nenhuma URL retornou a aba Efetivo correta');
+    // Último recurso: tenta EFETIVO_URL diretamente
+    try{
+      const resp = await fetch(EFETIVO_URL);
+      if(resp.ok){
+        const rows = parseCSV(await resp.text());
+        console.log('Efetivo EFETIVO_URL linhas:', rows.length);
+        buildEfetivo(rows); return;
+      }
+    }catch(e){ console.warn('EFETIVO_URL erro:', e.message); }
     renderError();
   }
 
