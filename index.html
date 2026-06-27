@@ -1214,165 +1214,103 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   function buildEfetivo(rows){
     console.log('Efetivo CSV linhas:', rows.length);
 
-    // Linha 2 da planilha = idx 1: datas nas colunas C (idx 2) em diante
-    const dateRow   = rows[1] || [];
-    // Linha 14 = idx 13: DIRETA Total
-    // Linha 22 = idx 21: INDIRETA Total
-    let diretaRowIdx = 13, indirRowIdx = 21;
-
-    // Confirma pelos conteúdos (fallback robusto)
+    // Estrutura atual confirmada (27/06/2026):
+    // idx 1  (linha 2):  datas — col D(3) em diante no formato M/D/YYYY (ordem inversa)
+    // Busca DIRETA Total e INDIRETA Total pelo conteúdo das colunas A ou B
+    let diretaRowIdx=-1, indirRowIdx=-1;
     rows.forEach((r,i)=>{
-      const k = (r[0]||'').trim().toUpperCase();
-      if(k.includes('DIRETA') && k.includes('TOTAL') && !k.includes('INDIRETA')) diretaRowIdx = i;
-      if(k.includes('INDIRETA') && k.includes('TOTAL')) indirRowIdx = i;
+      const k=((r[0]||'')+(r[1]||'')).trim().toUpperCase();
+      if(k.includes('DIRETA')&&k.includes('TOTAL')&&!k.includes('INDIRETA')) diretaRowIdx=i;
+      if(k.includes('INDIRETA')&&k.includes('TOTAL')) indirRowIdx=i;
     });
+    if(diretaRowIdx<0) diretaRowIdx=13;
+    if(indirRowIdx<0)  indirRowIdx=22;
+    console.log('DIRETA idx:', diretaRowIdx, '| INDIRETA idx:', indirRowIdx);
 
+    const dateRow   = rows[1]  || [];
     const diretaRow = rows[diretaRowIdx] || [];
     const indirRow  = rows[indirRowIdx]  || [];
-    console.log('DIRETA row idx:', diretaRowIdx, '| amostra:', diretaRow.slice(2,7));
-    console.log('INDIRETA row idx:', indirRowIdx, '| amostra:', indirRow.slice(2,7));
 
-    const diasSemana = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const diasSemana=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
-    // Converte qualquer formato de data para objeto Date
     function parseDate(raw){
-      const s = (raw||'').trim().replace(/"/g,'');
-      // M/D/YYYY (ex: 6/19/2026)
-      const m1 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if(m1) return new Date(+m1[3], +m1[1]-1, +m1[2]);
-      // d-mmm. ou d-mmm (ex: 11-jun.)
+      const s=(raw||'').trim().replace(/"/g,'');
+      const m1=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if(m1) return new Date(+m1[3],+m1[1]-1,+m1[2]);
       const mm={jan:0,fev:1,feb:1,mar:2,abr:3,apr:3,mai:4,may:4,jun:5,jul:6,ago:7,aug:7,set:8,sep:8,out:9,oct:9,nov:10,dez:11,dec:11};
-      const m2 = s.match(/^(\d{1,2})[- ]([a-zA-Zê]+)\.?$/);
+      const m2=s.match(/^(\d{1,2})[- ]([a-zA-Z\xea]+)\.?$/);
       if(m2){ const mo=mm[(m2[2]||'').toLowerCase().slice(0,3)]; if(mo!==undefined) return new Date(2026,mo,+m2[1]); }
       return null;
     }
+    function fmtD(dt){ return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0'); }
 
-    function fmtDateFromObj(dt){ return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0'); }
-
-    // Coleta todas as colunas com dados válidos
-    const entries = [];
-    for(let c=2; c<dateRow.length; c++){
-      const rawDate = (dateRow[c]||'').trim().replace(/"/g,'');
-      if(!rawDate) continue;
-      if(!/\d/.test(rawDate)) continue;
-
-      const dt = parseDate(rawDate);
+    const entries=[];
+    // Datas começam na col D = idx 3
+    for(let c=3;c<dateRow.length;c++){
+      const raw=(dateRow[c]||'').trim();
+      if(!raw) continue;
+      const dt=parseDate(raw);
       if(!dt) continue;
-
-      const d = ni(diretaRow[c]);
-      const i = ni(indirRow[c]);
-      if(d===0 && i===0) continue;
-
-      entries.push({ dt, d, i });
+      const d=parseInt((diretaRow[c]||'').replace(/\D/g,''))||0;
+      const i=parseInt((indirRow[c]||'').replace(/\D/g,''))||0;
+      if(d===0&&i===0) continue;
+      entries.push({dt,d,i});
     }
+    entries.sort((a,b)=>a.dt-b.dt);
 
-    // Ordena cronologicamente (planilha vem em ordem inversa)
-    entries.sort((a,b) => a.dt - b.dt);
+    const labels=entries.map(e=>[fmtD(e.dt),diasSemana[e.dt.getDay()]]);
+    const diretaData=entries.map(e=>e.d);
+    const indirData=entries.map(e=>e.i);
+    const totais=entries.map(e=>e.d+e.i);
 
-    const labels=[], diretaData=[], indirData=[], totais=[];
-    entries.forEach(e => {
-      const wd = diasSemana[e.dt.getDay()];
-      labels.push([fmtDateFromObj(e.dt), wd]);
-      diretaData.push(e.d);
-      indirData.push(e.i);
-      totais.push(e.d + e.i);
-    });
+    console.log('Efetivo entries:', entries.length, '| labels[0]:', labels[0]);
+    if(!labels.length){ renderError(); return; }
 
-    console.log('Entradas processadas:', entries.length, '| labels[0]:', labels[0]);
-
-    if(!labels.length){ console.error('Sem dados'); renderError(); return; }
-
-    // Build canvas
-    const wrap = document.getElementById('efetivo-wrap');
-    wrap.innerHTML = '<canvas id="efeitoCanvas"></canvas>';
+    const wrap=document.getElementById('efetivo-wrap');
+    wrap.innerHTML='<canvas id="efeitoCanvas"></canvas>';
     if(efChart){ efChart.destroy(); efChart=null; }
-    const ctx = document.getElementById('efeitoCanvas').getContext('2d');
+    const ctx=document.getElementById('efeitoCanvas').getContext('2d');
 
-    // Plugin: total acima + valores brancos dentro das barras
-    const topPlugin = {
+    const topPlugin={
       id:'efTotals',
       afterDatasetsDraw(chart){
-        const {ctx} = chart;
-        ctx.save();
-
-        // Total acima (escuro)
-        ctx.font = 'bold 11px Inter,sans-serif';
-        ctx.fillStyle = '#1B2F4E';
-        ctx.textAlign = 'center';
-        chart.getDatasetMeta(1).data.forEach((bar,i)=>{
-          if(totais[i]>0) ctx.fillText(totais[i], bar.x, bar.y-5);
-        });
-
-        // Valor branco dentro da barra Indireta (dataset 0 = vermelho)
-        ctx.font = 'bold 11px Inter,sans-serif';
-        ctx.fillStyle = '#FFFFFF';
-        ctx.textAlign = 'center';
-        chart.getDatasetMeta(0).data.forEach((bar,i)=>{
-          const v = indirData[i];
-          if(v > 0){
-            const barH = bar.height || 0;
-            if(barH > 14) ctx.fillText(v, bar.x, bar.y + barH/2 + 4);
-          }
-        });
-
-        // Valor branco dentro da barra Direta (dataset 1 = azul)
-        chart.getDatasetMeta(1).data.forEach((bar,i)=>{
-          const v = diretaData[i];
-          if(v > 0){
-            const barH = bar.height || 0;
-            if(barH > 14) ctx.fillText(v, bar.x, bar.y + barH/2 + 4);
-          }
-        });
-
+        const {ctx}=chart; ctx.save();
+        ctx.font='bold 11px Inter,sans-serif'; ctx.fillStyle='#1B2F4E'; ctx.textAlign='center';
+        chart.getDatasetMeta(1).data.forEach((bar,i)=>{ if(totais[i]>0) ctx.fillText(totais[i],bar.x,bar.y-5); });
+        ctx.fillStyle='#FFFFFF';
+        chart.getDatasetMeta(0).data.forEach((bar,i)=>{ const v=indirData[i]; if(v>0&&(bar.height||0)>14) ctx.fillText(v,bar.x,bar.y+(bar.height||0)/2+4); });
+        chart.getDatasetMeta(1).data.forEach((bar,i)=>{ const v=diretaData[i]; if(v>0&&(bar.height||0)>14) ctx.fillText(v,bar.x,bar.y+(bar.height||0)/2+4); });
         ctx.restore();
       }
     };
 
-    efChart = new Chart(ctx,{
-      type:'bar',
-      plugins:[topPlugin],
-      data:{
-        labels,
-        datasets:[
-          { label:'Indireta', data:indirData,  backgroundColor:'#DC2626', stack:'s', borderRadius:{topLeft:2,topRight:2}, borderSkipped:false, categoryPercentage:0.7, barPercentage:0.85 },
-          { label:'Direta',   data:diretaData, backgroundColor:'#1D6FB5', stack:'s', borderRadius:{topLeft:2,topRight:2}, borderSkipped:'bottom', categoryPercentage:0.7, barPercentage:0.85 }
-        ]
-      },
+    efChart=new Chart(ctx,{
+      type:'bar', plugins:[topPlugin],
+      data:{ labels, datasets:[
+        {label:'Indireta',data:indirData,backgroundColor:'#DC2626',stack:'s',borderRadius:{topLeft:2,topRight:2},borderSkipped:false,categoryPercentage:0.7,barPercentage:0.85},
+        {label:'Direta',  data:diretaData,backgroundColor:'#1D6FB5',stack:'s',borderRadius:{topLeft:2,topRight:2},borderSkipped:'bottom',categoryPercentage:0.7,barPercentage:0.85}
+      ]},
       options:{
-        responsive:true, maintainAspectRatio:false,
-        animation:{duration:500},
+        responsive:true,maintainAspectRatio:false,animation:{duration:500},
         plugins:{
           legend:{display:false},
-          tooltip:{
-            backgroundColor:'#1B2F4E',titleColor:'#94A3B8',bodyColor:'#E2E8F0',padding:10,cornerRadius:8,
+          tooltip:{backgroundColor:'#1B2F4E',titleColor:'#94A3B8',bodyColor:'#E2E8F0',padding:10,cornerRadius:8,
             callbacks:{
-              title: items=>{ const l=labels[items[0].dataIndex]; return Array.isArray(l)?`${l[0]} · ${l[1]}`:`${l}`; },
-              label: item=>` ${item.dataset.label}: ${item.parsed.y}`,
-              afterBody: items=>[`Total: ${totais[items[0].dataIndex]}`]
+              title:items=>{ const l=labels[items[0].dataIndex]; return Array.isArray(l)?`${l[0]} · ${l[1]}`:`${l}`; },
+              label:item=>` ${item.dataset.label}: ${item.parsed.y}`,
+              afterBody:items=>[`Total: ${totais[items[0].dataIndex]}`]
             }
           }
         },
         scales:{
-          x:{
-            stacked:true,
-            ticks:{
-              color:'#4B5C72',
-              font:{size:10,weight:'600'},
-              maxRotation:0,
-              autoSkip:false,
-              callback: function(val,idx){
-                const l = labels[idx];
-                return Array.isArray(l) ? l : [l];
-              }
-            },
-            grid:{display:false}
-          },
-          y:{ stacked:true, min:0, ticks:{color:'#8FA0B4',font:{size:11},stepSize:10}, grid:{color:'rgba(0,0,0,0.05)'} }
+          x:{stacked:true,ticks:{color:'#4B5C72',font:{size:10,weight:'600'},maxRotation:0,autoSkip:false,callback:function(v,i){const l=labels[i];return Array.isArray(l)?l:[l];}},grid:{display:false}},
+          y:{stacked:true,min:0,ticks:{color:'#8FA0B4',font:{size:11},stepSize:10},grid:{color:'rgba(0,0,0,0.05)'}}
         },
         layout:{padding:{top:30,bottom:10}}
       }
     });
   }
+
 
   function renderError(){
     const wrap = document.getElementById('efetivo-wrap');
