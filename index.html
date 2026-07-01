@@ -1459,21 +1459,28 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       const resp = await fetch(JUNTAS_URL);
       if(!resp.ok){ console.warn('Juntas HTTP:', resp.status); return; }
       const rows = parseCSV(await resp.text());
-      console.log('Juntas CSV:', rows.length, 'linhas');
+      console.log('Juntas CSV:', rows.length, 'linhas | row0:', rows[0]?.slice(0,3), '| row0[11]:', rows[0]?.[11]);
 
-      // Data de corte: linha 0
-      const hdr = rows[0]?.join('')||'';
-      const mD = hdr.match(/(\d{2}\/\d{2}\/\d{4})/);
+      // Data de corte: linha 1 (idx 0), coluna L (idx 11)
+      const dateCell = (rows[0]?.[11]||rows[0]?.[0]||'');
+      const mD = dateCell.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
       const el = document.getElementById('juntas-corte');
-      if(el && mD) el.textContent = mD[1];
+      if(el && mD){
+        // Formata M/D/YYYY → DD/MM/YYYY
+        const p=mD[1].split('/');
+        el.textContent = p.length===3 ? `${p[1].padStart(2,'0')}/${p[0].padStart(2,'0')}/${p[2]}` : mD[1];
+      }
 
       // Monta índice por conteúdo da col A
+      // CSV tem encoding quebrado: â€" = –, Ã§ = ç etc
+      // Usamos includes sem acentos para máxima compatibilidade
       const idx={};
       rows.forEach((r,i)=>{
-        const a=clean(r[0]||'').toUpperCase();
-        // Só mapeia linhas que começam com "DDW XX" — evita pegar TOTAL GERAL ou CONSOLIDADO
-        const isDDW = /^DDW\s*0?\d/.test(a);
-        if(!isDDW) {
+        const raw=(r[0]||'');
+        const a=raw.toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+        console.log(`row[${i}] A="${a.slice(0,40)}"`);
+        const isDDW = /^DDW\s*0?[0-9]/.test(a);
+        if(!isDDW){
           if(a.includes('CONSOLIDADO')&&a.includes('01')&&a.includes('04')) idx['C0104']=i;
           if(a.includes('CONSOLIDADO')&&a.includes('02')&&a.includes('05')) idx['C0205']=i;
           if(a.includes('CONSOLIDADO')&&a.includes('03')&&a.includes('06')) idx['C0306']=i;
