@@ -1471,22 +1471,27 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       const idx={};
       rows.forEach((r,i)=>{
         const a=clean(r[0]||'').toUpperCase();
+        // Só mapeia linhas que começam com "DDW XX" — evita pegar TOTAL GERAL ou CONSOLIDADO
+        const isDDW = /^DDW\s*0?\d/.test(a);
+        if(!isDDW) {
+          if(a.includes('CONSOLIDADO')&&a.includes('01')&&a.includes('04')) idx['C0104']=i;
+          if(a.includes('CONSOLIDADO')&&a.includes('02')&&a.includes('05')) idx['C0205']=i;
+          if(a.includes('CONSOLIDADO')&&a.includes('03')&&a.includes('06')) idx['C0306']=i;
+          if(a.includes('TOTAL GERAL')) idx['TOTAL']=i;
+          return;
+        }
         if(a.includes('DDW 01')&&a.includes('ACOPLAMENTO')) idx['01AC']=i;
-        if(a.includes('DDW 01')&&a.includes('SOLDA')&&!a.includes('CONS')) idx['01SO']=i;
+        if(a.includes('DDW 01')&&a.includes('SOLDA')) idx['01SO']=i;
         if(a.includes('DDW 04')&&a.includes('ACOPLAMENTO')) idx['04AC']=i;
-        if(a.includes('DDW 04')&&a.includes('SOLDA')&&!a.includes('CONS')) idx['04SO']=i;
-        if(a.includes('CONSOLIDADO')&&a.includes('01')&&a.includes('04')) idx['C0104']=i;
+        if(a.includes('DDW 04')&&a.includes('SOLDA')) idx['04SO']=i;
         if(a.includes('DDW 02')&&a.includes('ACOPLAMENTO')) idx['02AC']=i;
-        if(a.includes('DDW 02')&&a.includes('SOLDA')&&!a.includes('CONS')) idx['02SO']=i;
+        if(a.includes('DDW 02')&&a.includes('SOLDA')) idx['02SO']=i;
         if(a.includes('DDW 05')&&a.includes('ACOPLAMENTO')) idx['05AC']=i;
-        if(a.includes('DDW 05')&&a.includes('SOLDA')&&!a.includes('CONS')) idx['05SO']=i;
-        if(a.includes('CONSOLIDADO')&&a.includes('02')&&a.includes('05')) idx['C0205']=i;
+        if(a.includes('DDW 05')&&a.includes('SOLDA')) idx['05SO']=i;
         if(a.includes('DDW 03')&&a.includes('ACOPLAMENTO')) idx['03AC']=i;
-        if(a.includes('DDW 03')&&a.includes('SOLDA')&&!a.includes('CONS')) idx['03SO']=i;
+        if(a.includes('DDW 03')&&a.includes('SOLDA')) idx['03SO']=i;
         if(a.includes('DDW 06')&&a.includes('ACOPLAMENTO')) idx['06AC']=i;
-        if(a.includes('DDW 06')&&a.includes('SOLDA')&&!a.includes('CONS')) idx['06SO']=i;
-        if(a.includes('CONSOLIDADO')&&a.includes('03')&&a.includes('06')) idx['C0306']=i;
-        if(a.includes('TOTAL GERAL')) idx['TOTAL']=i;
+        if(a.includes('DDW 06')&&a.includes('SOLDA')) idx['06SO']=i;
       });
       console.log('Juntas idx:', JSON.stringify(idx));
 
@@ -1494,46 +1499,46 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
 
       // PAR DDW01+DDW04 — Pipe Shop
       buildTable('jt-ps-0104',[
-        {tipo:'Acoplamentos', tot:g('01AC',1), conc:g('01AC',2), falta:g('01AC',3), pct:g('01AC',4), status:g('01AC',5)},
-        {tipo:'Soldas',       tot:g('01SO',1), conc:g('01SO',2), falta:g('01SO',3), pct:g('01SO',4), status:g('01SO',5)},
-        {tipo:'DDW04 Acop.',  tot:g('04AC',1), conc:g('04AC',2), falta:g('04AC',3), pct:g('04AC',4), status:g('04AC',5)},
-        {tipo:'DDW04 Soldas', tot:g('04SO',1), conc:g('04SO',2), falta:g('04SO',3), pct:g('04SO',4), status:g('04SO',5)},
+        {tipo:'DDW01 – Acoplamentos', tot:g('01AC',1), conc:g('01AC',2), falta:g('01AC',3), pct:g('01AC',4), status:g('01AC',5)},
+        {tipo:'DDW01 – Soldas',       tot:g('01SO',1), conc:g('01SO',2), falta:g('01SO',3), pct:g('01SO',4), status:g('01SO',5)},
+        {tipo:'DDW04 – Acoplamentos', tot:g('04AC',1), conc:g('04AC',2), falta:g('04AC',3), pct:g('04AC',4), status:g('04AC',5)},
+        {tipo:'DDW04 – Soldas',       tot:g('04SO',1), conc:g('04SO',2), falta:g('04SO',3), pct:g('04SO',4), status:g('04SO',5)},
       ]);
       buildTable('jt-ca-0104',[
-        {tipo:'Acoplamentos', tot:g('01AC',6), conc:g('01AC',7), falta:g('01AC',8), pct:g('01AC',9), status:g('01AC',10)},
-        {tipo:'Soldas',       tot:g('01SO',6), conc:g('01SO',7), falta:g('01SO',8), pct:g('01SO',9), status:g('01SO',10)},
-        {tipo:'DDW04 Acop.',  tot:g('04AC',6), conc:g('04AC',7), falta:g('04AC',8), pct:g('04AC',9), status:g('04AC',10)},
-        {tipo:'DDW04 Soldas', tot:g('04SO',6), conc:g('04SO',7), falta:g('04SO',8), pct:g('04SO',9), status:g('04SO',10)},
+        {tipo:'DDW01 – Acoplamentos', tot:g('01AC',6), conc:g('01AC',7), falta:g('01AC',8), pct:g('01AC',9), status:g('01AC',10)},
+        {tipo:'DDW01 – Soldas',       tot:g('01SO',6), conc:g('01SO',7), falta:g('01SO',8), pct:g('01SO',9), status:g('01SO',10)},
+        {tipo:'DDW04 – Acoplamentos', tot:g('04AC',6), conc:g('04AC',7), falta:g('04AC',8), pct:g('04AC',9), status:g('04AC',10)},
+        {tipo:'DDW04 – Soldas',       tot:g('04SO',6), conc:g('04SO',7), falta:g('04SO',8), pct:g('04SO',9), status:g('04SO',10)},
       ]);
       buildStatusBar('jst-0104', g('C0104',5), g('C0104',10));
 
-      // PAR DDW02+DDW05 — Pipe Shop
+      // PAR DDW02+DDW05
       buildTable('jt-ps-0205',[
-        {tipo:'Acoplamentos', tot:g('02AC',1), conc:g('02AC',2), falta:g('02AC',3), pct:g('02AC',4), status:g('02AC',5)},
-        {tipo:'Soldas',       tot:g('02SO',1), conc:g('02SO',2), falta:g('02SO',3), pct:g('02SO',4), status:g('02SO',5)},
-        {tipo:'DDW05 Acop.',  tot:g('05AC',1), conc:g('05AC',2), falta:g('05AC',3), pct:g('05AC',4), status:g('05AC',5)},
-        {tipo:'DDW05 Soldas', tot:g('05SO',1), conc:g('05SO',2), falta:g('05SO',3), pct:g('05SO',4), status:g('05SO',5)},
+        {tipo:'DDW02 – Acoplamentos', tot:g('02AC',1), conc:g('02AC',2), falta:g('02AC',3), pct:g('02AC',4), status:g('02AC',5)},
+        {tipo:'DDW02 – Soldas',       tot:g('02SO',1), conc:g('02SO',2), falta:g('02SO',3), pct:g('02SO',4), status:g('02SO',5)},
+        {tipo:'DDW05 – Acoplamentos', tot:g('05AC',1), conc:g('05AC',2), falta:g('05AC',3), pct:g('05AC',4), status:g('05AC',5)},
+        {tipo:'DDW05 – Soldas',       tot:g('05SO',1), conc:g('05SO',2), falta:g('05SO',3), pct:g('05SO',4), status:g('05SO',5)},
       ]);
       buildTable('jt-ca-0205',[
-        {tipo:'Acoplamentos', tot:g('02AC',6), conc:g('02AC',7), falta:g('02AC',8), pct:g('02AC',9), status:g('02AC',10)},
-        {tipo:'Soldas',       tot:g('02SO',6), conc:g('02SO',7), falta:g('02SO',8), pct:g('02SO',9), status:g('02SO',10)},
-        {tipo:'DDW05 Acop.',  tot:g('05AC',6), conc:g('05AC',7), falta:g('05AC',8), pct:g('05AC',9), status:g('05AC',10)},
-        {tipo:'DDW05 Soldas', tot:g('05SO',6), conc:g('05SO',7), falta:g('05SO',8), pct:g('05SO',9), status:g('05SO',10)},
+        {tipo:'DDW02 – Acoplamentos', tot:g('02AC',6), conc:g('02AC',7), falta:g('02AC',8), pct:g('02AC',9), status:g('02AC',10)},
+        {tipo:'DDW02 – Soldas',       tot:g('02SO',6), conc:g('02SO',7), falta:g('02SO',8), pct:g('02SO',9), status:g('02SO',10)},
+        {tipo:'DDW05 – Acoplamentos', tot:g('05AC',6), conc:g('05AC',7), falta:g('05AC',8), pct:g('05AC',9), status:g('05AC',10)},
+        {tipo:'DDW05 – Soldas',       tot:g('05SO',6), conc:g('05SO',7), falta:g('05SO',8), pct:g('05SO',9), status:g('05SO',10)},
       ]);
       buildStatusBar('jst-0205', g('C0205',5), g('C0205',10));
 
       // PAR DDW03+DDW06
       buildTable('jt-ps-0306',[
-        {tipo:'Acoplamentos', tot:g('03AC',1), conc:g('03AC',2), falta:g('03AC',3), pct:g('03AC',4), status:g('03AC',5)},
-        {tipo:'Soldas',       tot:g('03SO',1), conc:g('03SO',2), falta:g('03SO',3), pct:g('03SO',4), status:g('03SO',5)},
-        {tipo:'DDW06 Acop.',  tot:g('06AC',1), conc:g('06AC',2), falta:g('06AC',3), pct:g('06AC',4), status:g('06AC',5)},
-        {tipo:'DDW06 Soldas', tot:g('06SO',1), conc:g('06SO',2), falta:g('06SO',3), pct:g('06SO',4), status:g('06SO',5)},
+        {tipo:'DDW03 – Acoplamentos', tot:g('03AC',1), conc:g('03AC',2), falta:g('03AC',3), pct:g('03AC',4), status:g('03AC',5)},
+        {tipo:'DDW03 – Soldas',       tot:g('03SO',1), conc:g('03SO',2), falta:g('03SO',3), pct:g('03SO',4), status:g('03SO',5)},
+        {tipo:'DDW06 – Acoplamentos', tot:g('06AC',1), conc:g('06AC',2), falta:g('06AC',3), pct:g('06AC',4), status:g('06AC',5)},
+        {tipo:'DDW06 – Soldas',       tot:g('06SO',1), conc:g('06SO',2), falta:g('06SO',3), pct:g('06SO',4), status:g('06SO',5)},
       ]);
       buildTable('jt-ca-0306',[
-        {tipo:'Acoplamentos', tot:g('03AC',6), conc:g('03AC',7), falta:g('03AC',8), pct:g('03AC',9), status:g('03AC',10)},
-        {tipo:'Soldas',       tot:g('03SO',6), conc:g('03SO',7), falta:g('03SO',8), pct:g('03SO',9), status:g('03SO',10)},
-        {tipo:'DDW06 Acop.',  tot:g('06AC',6), conc:g('06AC',7), falta:g('06AC',8), pct:g('06AC',9), status:g('06AC',10)},
-        {tipo:'DDW06 Soldas', tot:g('06SO',6), conc:g('06SO',7), falta:g('06SO',8), pct:g('06SO',9), status:g('06SO',10)},
+        {tipo:'DDW03 – Acoplamentos', tot:g('03AC',6), conc:g('03AC',7), falta:g('03AC',8), pct:g('03AC',9), status:g('03AC',10)},
+        {tipo:'DDW03 – Soldas',       tot:g('03SO',6), conc:g('03SO',7), falta:g('03SO',8), pct:g('03SO',9), status:g('03SO',10)},
+        {tipo:'DDW06 – Acoplamentos', tot:g('06AC',6), conc:g('06AC',7), falta:g('06AC',8), pct:g('06AC',9), status:g('06AC',10)},
+        {tipo:'DDW06 – Soldas',       tot:g('06SO',6), conc:g('06SO',7), falta:g('06SO',8), pct:g('06SO',9), status:g('06SO',10)},
       ]);
       buildStatusBar('jst-0306', g('C0306',5), g('C0306',10));
 
