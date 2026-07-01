@@ -1459,48 +1459,95 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       const resp = await fetch(JUNTAS_URL);
       if(!resp.ok){ console.warn('Juntas HTTP:', resp.status); return; }
       const rows = parseCSV(await resp.text());
-      console.log('Juntas CSV:', rows.length, 'linhas | row0:', rows[0]?.slice(0,3), '| row0[11]:', rows[0]?.[11]);
+      console.log('Juntas CSV:', rows.length, 'linhas');
+      // Log das linhas 0-32 para diagnóstico
+      for(let i=0;i<Math.min(33,rows.length);i++){
+        console.log(`[${i}]`, JSON.stringify(rows[i]?.slice(0,6)));
+      }
 
-      // Data de corte: linha 1 (idx 0), coluna L (idx 11)
-      const dateCell = (rows[0]?.[11]||rows[0]?.[0]||'');
+      // Data de corte: linha 1 (idx 0), col L (idx 11)
+      const dateCell = rows[0]?.[11]||rows[0]?.[0]||'';
       const mD = dateCell.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
       const el = document.getElementById('juntas-corte');
       if(el && mD){
-        // Formata M/D/YYYY → DD/MM/YYYY
         const p=mD[1].split('/');
-        el.textContent = p.length===3 ? `${p[1].padStart(2,'0')}/${p[0].padStart(2,'0')}/${p[2]}` : mD[1];
+        el.textContent = `${String(+p[1]).padStart(2,'0')}/${String(+p[0]).padStart(2,'0')}/${p[2]}`;
       }
 
-      // Monta índice por conteúdo da col A
-      // CSV tem encoding quebrado: â€" = –, Ã§ = ç etc
-      // Usamos includes sem acentos para máxima compatibilidade
-      const idx={};
+      // Índices fixos baseados em A6:L32 (seleção confirmada)
+      // Linha 6  = idx 5:  PAR DDW01+DDW04 (título)
+      // Linha 7  = idx 6:  DDW01 Cortes
+      // Linha 8  = idx 7:  DDW01 Acoplamentos  ← dados
+      // Linha 9  = idx 8:  DDW01 Soldas         ← dados
+      // Linha 10 = idx 9:  DDW04 Cortes
+      // Linha 11 = idx 10: DDW04 Acoplamentos  ← dados
+      // Linha 12 = idx 11: DDW04 Soldas         ← dados
+      // Linha 13 = idx 12: CONSOLIDADO 01+04
+      // Linha 14 = idx 13: (vazio)
+      // Linha 15 = idx 14: PAR DDW02+DDW05 (título)
+      // Linha 16 = idx 15: DDW02 Cortes
+      // Linha 17 = idx 16: DDW02 Acoplamentos  ← dados
+      // Linha 18 = idx 17: DDW02 Soldas         ← dados
+      // Linha 19 = idx 18: DDW05 Cortes
+      // Linha 20 = idx 19: DDW05 Acoplamentos  ← dados
+      // Linha 21 = idx 20: DDW05 Soldas         ← dados
+      // Linha 22 = idx 21: CONSOLIDADO 02+05
+      // Linha 23 = idx 22: (vazio)
+      // Linha 24 = idx 23: PAR DDW03+DDW06 (título)
+      // Linha 25 = idx 24: DDW03 Cortes
+      // Linha 26 = idx 25: DDW03 Acoplamentos  ← dados
+      // Linha 27 = idx 26: DDW03 Soldas         ← dados
+      // Linha 28 = idx 27: DDW06 Cortes
+      // Linha 29 = idx 28: DDW06 Acoplamentos  ← dados
+      // Linha 30 = idx 29: DDW06 Soldas         ← dados
+      // Linha 31 = idx 30: CONSOLIDADO 03+06
+      // Linha 32 = idx 31: (vazio)
+      // Linha 33 = idx 32: TOTAL GERAL
+
+      const IDX = {
+        '01AC': 7,  '01SO': 8,
+        '04AC': 10, '04SO': 11,
+        'C0104': 12,
+        '02AC': 16, '02SO': 17,
+        '05AC': 19, '05SO': 20,
+        'C0205': 21,
+        '03AC': 25, '03SO': 26,
+        '06AC': 28, '06SO': 29,
+        'C0306': 30,
+        'TOTAL': 32,
+      };
+
+      // Confirma pelo conteúdo — ajusta se necessário
+      const idx = {...IDX};
       rows.forEach((r,i)=>{
-        const raw=(r[0]||'');
-        const a=raw.toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
-        console.log(`row[${i}] A="${a.slice(0,40)}"`);
-        const isDDW = /^DDW\s*0?[0-9]/.test(a);
-        if(!isDDW){
-          if(a.includes('CONSOLIDADO')&&a.includes('01')&&a.includes('04')) idx['C0104']=i;
-          if(a.includes('CONSOLIDADO')&&a.includes('02')&&a.includes('05')) idx['C0205']=i;
-          if(a.includes('CONSOLIDADO')&&a.includes('03')&&a.includes('06')) idx['C0306']=i;
-          if(a.includes('TOTAL GERAL')) idx['TOTAL']=i;
-          return;
-        }
+        const a=(r[0]||'').replace(/[^A-Za-z0-9\s]/g,' ').replace(/\s+/g,' ').trim().toUpperCase();
         if(a.includes('DDW 01')&&a.includes('ACOPLAMENTO')) idx['01AC']=i;
-        if(a.includes('DDW 01')&&a.includes('SOLDA')) idx['01SO']=i;
+        if(a.includes('DDW 01')&&a.includes('SOLDA')&&!a.includes('CORT')) idx['01SO']=i;
         if(a.includes('DDW 04')&&a.includes('ACOPLAMENTO')) idx['04AC']=i;
-        if(a.includes('DDW 04')&&a.includes('SOLDA')) idx['04SO']=i;
+        if(a.includes('DDW 04')&&a.includes('SOLDA')&&!a.includes('CORT')) idx['04SO']=i;
+        if(a.includes('CONSOLIDADO')&&a.includes('01')&&a.includes('04')) idx['C0104']=i;
         if(a.includes('DDW 02')&&a.includes('ACOPLAMENTO')) idx['02AC']=i;
-        if(a.includes('DDW 02')&&a.includes('SOLDA')) idx['02SO']=i;
+        if(a.includes('DDW 02')&&a.includes('SOLDA')&&!a.includes('CORT')) idx['02SO']=i;
         if(a.includes('DDW 05')&&a.includes('ACOPLAMENTO')) idx['05AC']=i;
-        if(a.includes('DDW 05')&&a.includes('SOLDA')) idx['05SO']=i;
+        if(a.includes('DDW 05')&&a.includes('SOLDA')&&!a.includes('CORT')) idx['05SO']=i;
+        if(a.includes('CONSOLIDADO')&&a.includes('02')&&a.includes('05')) idx['C0205']=i;
         if(a.includes('DDW 03')&&a.includes('ACOPLAMENTO')) idx['03AC']=i;
-        if(a.includes('DDW 03')&&a.includes('SOLDA')) idx['03SO']=i;
+        if(a.includes('DDW 03')&&a.includes('SOLDA')&&!a.includes('CORT')) idx['03SO']=i;
         if(a.includes('DDW 06')&&a.includes('ACOPLAMENTO')) idx['06AC']=i;
-        if(a.includes('DDW 06')&&a.includes('SOLDA')) idx['06SO']=i;
+        if(a.includes('DDW 06')&&a.includes('SOLDA')&&!a.includes('CORT')) idx['06SO']=i;
+        if(a.includes('CONSOLIDADO')&&a.includes('03')&&a.includes('06')) idx['C0306']=i;
+        if(a.includes('TOTAL GERAL')) idx['TOTAL']=i;
       });
-      console.log('Juntas idx:', JSON.stringify(idx));
+
+      console.log('Juntas idx final:', JSON.stringify(idx));
+
+      // Cols: B(1)=Total PS, C(2)=Conc PS, D(3)=Falta PS, E(4)=% PS, F(5)=Status PS
+      //       G(6)=Total Campo, H(7)=Conc Campo, I(8)=Falta Campo, J(9)=% Campo, K(10)=Status Campo
+      function g(key,col){
+        const r=rows[idx[key]];
+        if(!r) return '—';
+        return (r[col]||'').trim()||'—';
+      }
 
       function g(key,col){ return (rows[idx[key]]||[])[col]||'—'; }
 
