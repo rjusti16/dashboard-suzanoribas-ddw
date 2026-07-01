@@ -1402,7 +1402,11 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
 <script>
 // ── CONTROLE DE JUNTAS DDW ──────────────────────────────────
 (function(){
-  const JUNTAS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSjn6QvtvfNd6t8hqeb10X2FUwzVTgA8aXB6_Sd705Prjk75hcRY3Hg03D_ZbCOPQ/pub?gid=1833121399&single=true&output=csv';
+  const JUNTAS_URLS = [
+    'https://docs.google.com/spreadsheets/d/1lHFj2eHC02N8CayPQJa2SYbF1OemtZxi/gviz/tq?tqx=out:csv&gid=1833121399',
+    'https://docs.google.com/spreadsheets/d/1lHFj2eHC02N8CayPQJa2SYbF1OemtZxi/gviz/tq?tqx=out:csv&sheet=Controle%20de%20Juntas',
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vSjn6QvtvfNd6t8hqeb10X2FUwzVTgA8aXB6_Sd705Prjk75hcRY3Hg03D_ZbCOPQ/pub?gid=1833121399&single=true&output=csv',
+  ];
 
   function parseCSV(text){
     return text.trim().split('\n').map(line=>{
@@ -1455,10 +1459,19 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
   }
 
   async function loadJuntas(){
+    let rows = null;
+    for(const url of JUNTAS_URLS){
+      try{
+        const resp = await fetch(url);
+        console.log('Juntas URL:', url.slice(-60), '| status:', resp.status);
+        if(!resp.ok) continue;
+        const text = await resp.text();
+        const parsed = parseCSV(text);
+        if(parsed.length > 5){ rows = parsed; break; }
+      }catch(e){ console.warn('Juntas erro:', e.message); }
+    }
+    if(!rows){ console.error('Juntas: nenhuma URL funcionou'); return; }
     try{
-      const resp = await fetch(JUNTAS_URL);
-      if(!resp.ok){ console.warn('Juntas HTTP:', resp.status); return; }
-      const rows = parseCSV(await resp.text());
       console.log('Juntas CSV:', rows.length, 'linhas');
       // Log das linhas 0-32 para diagnóstico
       for(let i=0;i<Math.min(33,rows.length);i++){
@@ -1604,7 +1617,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
         {tipo:'Total Soldas', tot:g('TOTAL',6), conc:g('TOTAL',7), falta:g('TOTAL',8), pct:g('TOTAL',9), status:g('TOTAL',10)},
       ]);
 
-    }catch(e){ console.error('Juntas erro:', e.message, e); }
+    }catch(e){ console.error('Juntas erro geral:', e.message, e); }
   }
 
   loadJuntas();
