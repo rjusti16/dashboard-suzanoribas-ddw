@@ -1517,52 +1517,36 @@ body { font-family: var(--sans); background: var(--bg); color: var(--t1); line-h
       // Linha 32 = idx 31: (vazio)
       // Linha 33 = idx 32: TOTAL GERAL
 
-      const IDX = {
-        '01AC': 7,  '01SO': 8,
-        '04AC': 10, '04SO': 11,
-        'C0104': 12,
-        '02AC': 16, '02SO': 17,
-        '05AC': 19, '05SO': 20,
-        'C0205': 21,
-        '03AC': 25, '03SO': 26,
-        '06AC': 28, '06SO': 29,
-        'C0306': 30,
-        'TOTAL': 32,
+      // Índices fixos confirmados pela planilha (imagem):
+      // Linha 7(idx6)=DDW01 Acop, Linha 8(idx7)=DDW01 Soldas
+      // Linha 10(idx9)=DDW04 Acop, Linha 11(idx10)=DDW04 Soldas, Linha 12(idx11)=CONS 01+04
+      // Linha 16(idx15)=DDW02 Acop, Linha 17(idx16)=DDW02 Soldas
+      // Linha 19(idx18)=DDW05 Acop, Linha 20(idx19)=DDW05 Soldas, Linha 21(idx20)=CONS 02+05
+      // Linha 25(idx24)=DDW03 Acop, Linha 26(idx25)=DDW03 Soldas
+      // Linha 28(idx27)=DDW06 Acop, Linha 29(idx28)=DDW06 Soldas, Linha 30(idx29)=CONS 03+06
+      // Linha 32(idx31)=TOTAL GERAL
+
+      const idx = {
+        '01AC':6,  '01SO':7,
+        '04AC':9,  '04SO':10, 'C0104':11,
+        '02AC':15, '02SO':16,
+        '05AC':18, '05SO':19, 'C0205':20,
+        '03AC':24, '03SO':25,
+        '06AC':27, '06SO':28, 'C0306':29,
+        'TOTAL':31,
       };
 
-      // Confirma pelo conteúdo — ajusta se necessário
-      const idx = {...IDX};
-      rows.forEach((r,i)=>{
-        const a=(r[0]||'').replace(/[^A-Za-z0-9\s]/g,' ').replace(/\s+/g,' ').trim().toUpperCase();
-        if(a.includes('DDW 01')&&a.includes('ACOPLAMENTO')) idx['01AC']=i;
-        if(a.includes('DDW 01')&&a.includes('SOLDA')&&!a.includes('CORT')) idx['01SO']=i;
-        if(a.includes('DDW 04')&&a.includes('ACOPLAMENTO')) idx['04AC']=i;
-        if(a.includes('DDW 04')&&a.includes('SOLDA')&&!a.includes('CORT')) idx['04SO']=i;
-        if(a.includes('CONSOLIDADO')&&a.includes('01')&&a.includes('04')) idx['C0104']=i;
-        if(a.includes('DDW 02')&&a.includes('ACOPLAMENTO')) idx['02AC']=i;
-        if(a.includes('DDW 02')&&a.includes('SOLDA')&&!a.includes('CORT')) idx['02SO']=i;
-        if(a.includes('DDW 05')&&a.includes('ACOPLAMENTO')) idx['05AC']=i;
-        if(a.includes('DDW 05')&&a.includes('SOLDA')&&!a.includes('CORT')) idx['05SO']=i;
-        if(a.includes('CONSOLIDADO')&&a.includes('02')&&a.includes('05')) idx['C0205']=i;
-        if(a.includes('DDW 03')&&a.includes('ACOPLAMENTO')) idx['03AC']=i;
-        if(a.includes('DDW 03')&&a.includes('SOLDA')&&!a.includes('CORT')) idx['03SO']=i;
-        if(a.includes('DDW 06')&&a.includes('ACOPLAMENTO')) idx['06AC']=i;
-        if(a.includes('DDW 06')&&a.includes('SOLDA')&&!a.includes('CORT')) idx['06SO']=i;
-        if(a.includes('CONSOLIDADO')&&a.includes('03')&&a.includes('06')) idx['C0306']=i;
-        if(a.includes('TOTAL GERAL')) idx['TOTAL']=i;
-      });
-
-      console.log('Juntas idx final:', JSON.stringify(idx));
+      console.log('Juntas row[6]:', JSON.stringify(rows[6]?.slice(0,6)));
+      console.log('Juntas row[7]:', JSON.stringify(rows[7]?.slice(0,6)));
+      console.log('Juntas row[31]:', JSON.stringify(rows[31]?.slice(0,6)));
 
       // Cols: B(1)=Total PS, C(2)=Conc PS, D(3)=Falta PS, E(4)=% PS, F(5)=Status PS
-      //       G(6)=Total Campo, H(7)=Conc Campo, I(8)=Falta Campo, J(9)=% Campo, K(10)=Status Campo
+      //       G(6)=Juntas Campo, H(7)=Conc Campo, I(8)=Falta Campo, J(9)=% Campo, K(10)=Status Campo
       function g(key,col){
         const r=rows[idx[key]];
-        if(!r) return '—';
-        return (r[col]||'').trim()||'—';
+        if(!r){ console.warn('Juntas: idx não encontrado para',key); return '—'; }
+        return (r[col]||'').replace(/[^\x20-\x7E\u00C0-\u00FF]/g,'').trim()||'—';
       }
-
-      function g(key,col){ return (rows[idx[key]]||[])[col]||'—'; }
 
       // PAR DDW01+DDW04 — Pipe Shop
       buildTable('jt-ps-0104',[
